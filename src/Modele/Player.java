@@ -3,6 +3,7 @@
  */
 package Modele;
 
+import org.newdawn.slick.Animation;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.SlickException;
 
@@ -20,7 +21,9 @@ public class Player extends Object {
 		this.speed = 5;
 		this.reloadTime = 15;
 		this.lastShoot = 0;
-		this.image = new Image("img/player.bmp", filter);
+		this.animation = new Animation();
+		this.animation.addFrame(new Image("img/player_frame1.bmp", filter), 100);
+		this.animation.addFrame(new Image("img/player_frame2.bmp", filter), 100);
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package Modele;
 
+import org.newdawn.slick.Animation;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Image;
 
@@ -7,8 +8,17 @@ public class Object {
 	protected int x;
 	protected int y;
 	protected int speed;
+	protected Animation animation;
 	protected Image image;
 	protected Color filter = new Color(255, 0, 255);
+	
+	public Animation getAnimation() {
+		return animation;
+	}
+
+	public void setAnimation(Animation animation) {
+		this.animation = animation;
+	}
 	
 	public Image getImage() {
 		return image;
