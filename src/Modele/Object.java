@@ -12,6 +12,14 @@ public class Object {
 	protected Image image;
 	protected Color filter = new Color(255, 0, 255);
 	
+	public Color getFilter() {
+		return filter;
+	}
+	
+	public void setFilter(Color filter) {
+		this.filter = filter;
+	}
+	
 	public Animation getAnimation() {
 		return animation;
 	}

@@ -6,6 +6,10 @@ import Modele.Shoot;
 import Modele.Background;
 import Modele.Wall;
 
+import java.awt.Font;
+import java.awt.FontFormatException;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -14,8 +18,11 @@ import org.newdawn.slick.BasicGame;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
+import org.newdawn.slick.UnicodeFont;
+import org.newdawn.slick.font.effects.ColorEffect;
 
 /**
  * @author steven
@@ -24,18 +31,19 @@ import org.newdawn.slick.SlickException;
 public class WindowGame extends BasicGame {
 	// Game Parameters
 	private static int maxFPS = 60;
-	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900
-	private static int width = 1024; 
-	private static int height = 768;
-	private static int bg_width = 2000;
-	private static int bg_height = 1000;
-	private static boolean fullscreen = true;
+	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080
+	private static int width = 1440; 
+	private static int height = 900;
+	private static int bg_width = 1920;
+	private static int bg_height = 1080;
+	private static boolean fullscreen = false;
 	private static boolean mouseGrabbed = false;
 	// 1 * 2
 	private static int mesh_width = 9;
 	private static int mesh_height = 18;
 	private static int max_wall_delta = 2;
 	private static int minimum_wall_space = 10;
+	private Image life;
 	
 	private Random rand = new Random();
 	private GameContainer container;
@@ -51,14 +59,17 @@ public class WindowGame extends BasicGame {
 	private int wall_max_y;
 	private int wallMoved = 0;
 	private int wallSpeed = 3;
+	private Font font;
+	private UnicodeFont ufont;
 	
 	public static void main(String[] args) throws SlickException {
 		try {
 	        AppGameContainer app = new AppGameContainer(new WindowGame(), width, height, fullscreen);
-	        app.setTargetFrameRate(maxFPS);
+	        //app.setTargetFrameRate(maxFPS);
 	        app.setMinimumLogicUpdateInterval(20);
 	        app.setMaximumLogicUpdateInterval(20);
 	        app.setMouseGrabbed(mouseGrabbed);
+	        app.setVSync(true);
 	        app.start();
 		}
 		catch (Exception e){
@@ -87,8 +98,27 @@ public class WindowGame extends BasicGame {
 		Background bg = new Background(0, 0);
 		bgs.add(bg);
 		
+		// Font initialization
+		try {
+			font = Font.createFont(Font.TRUETYPE_FONT, new File("font/pcsenior.ttf"));
+		} catch (FontFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		font = font.deriveFont(24f);
+		ufont = new UnicodeFont(font, font.getSize(), font.isBold(), font.isItalic());
+		ufont.addAsciiGlyphs();
+		ufont.addGlyphs(400, 600);
+		ufont.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
+		ufont.loadGlyphs();
+		
+		life = new Image("img/life.png");
+		
 		// Bottom wall initialization
-		walls = new Wall[width / mesh_width + 2][height / mesh_height + 1];
+		walls = new Wall[width / mesh_width + 4][height / mesh_height + 1];
 		bottom_wall = height / mesh_height;
 		wall_max_y = bottom_wall;
 		walls[walls.length - 1][walls[0].length - 1] = new Wall(mesh_width * (walls.length - 1), mesh_height * (walls[0].length - 1));
@@ -129,7 +159,9 @@ public class WindowGame extends BasicGame {
 		for(int i = 0 ; i < walls.length ; i++) {
 			for(int j = 0 ; j < walls[0].length ; j++) {
 				if(walls[i][j] != null) {
+					
 					walls[i][j].getImage().draw(walls[i][j].getX(), walls[i][j].getY(), mesh_width, mesh_height);
+					//g.drawString("X", walls[i][j].getX(), walls[i][j].getY());
 				}
 			}
 		}
@@ -144,34 +176,13 @@ public class WindowGame extends BasicGame {
 			g.drawString("top_wall : " + top_wall, width - padding, 90);
 			g.drawString("Bottom_wall : " + bottom_wall, width - padding, 110);
 		}
+		
+		// Drawing HUD
+		ufont.drawString(20, height - 40, "Life :");
+		for(int i = 0 ; i < player.getLife() ; i++) {
+			life.draw(170 + 42 * i, height - 45, 32, 32);
+		}
 	}
-	
-	/*************************************************************************/
-	/******************************** Methods ********************************/
-	/*************************************************************************/
-	@Override
-	public void keyPressed(int key, char c) {
-	    switch (key) {
-	        case Input.KEY_UP:     	this.moving[0] = true; break;
-	        case Input.KEY_RIGHT:  	this.moving[1] = true; break;
-	        case Input.KEY_DOWN:		this.moving[2] = true; break;
-	        case Input.KEY_LEFT:	 	this.moving[3] = true; break;
-	        case Input.KEY_SPACE:	this.shoot = true; break;
-	        case Input.KEY_D:		this.debug = !this.debug; break;
-	    }
-	}
-	
-	@Override
-    public void keyReleased(int key, char c) {
-        switch (key) {
-        		case Input.KEY_UP:		this.moving[0] = false; break;
-        		case Input.KEY_RIGHT:   	this.moving[1] = false; break;
-        		case Input.KEY_DOWN:   	this.moving[2] = false; break;
-        		case Input.KEY_LEFT:  	this.moving[3] = false; break;
-        		case Input.KEY_SPACE:	this.shoot = false; break;
-        		case Input.KEY_ESCAPE: 	this.container.exit();
-        }
-    }
 
 	
 	/*************************************************************************/
@@ -233,8 +244,17 @@ public class WindowGame extends BasicGame {
 		for(int i = 0 ; i < walls.length ; i++) {
 			for(int j = 0 ; j < walls[0].length ; j++) {
 				
-				// Moving walls
+				// Check if wall exists
 				if(walls[i][j] != null) {
+					// Updating walls sprites
+					// -1 is last column 
+					// -2 is before last but last column is not generated yet (below)
+					// So we check at the -3 column
+					if(i == walls.length - 3 && wallMoved == wallSpeed) {
+						checkSprite(walls[i][j], i, j);
+					}
+					
+					// Scrolling wall to the left
 					walls[i][j].setX(walls[i][j].getX() - wallSpeed);
 					if(wallMoved >= mesh_width) {
 						moved = true;
@@ -279,5 +299,796 @@ public class WindowGame extends BasicGame {
 			wallMoved = 0;
 		}
 	}
+	
+	
+	/*************************************************************************/
+	/******************************** Methods ********************************/
+	/*************************************************************************/
+	@Override
+	public void keyPressed(int key, char c) {
+	    switch (key) {
+	        case Input.KEY_UP:     	this.moving[0] = true; break;
+	        case Input.KEY_RIGHT:  	this.moving[1] = true; break;
+	        case Input.KEY_DOWN:		this.moving[2] = true; break;
+	        case Input.KEY_LEFT:	 	this.moving[3] = true; break;
+	        case Input.KEY_SPACE:	this.shoot = true; break;
+	        case Input.KEY_D:		this.debug = !this.debug; break;
+	    }
+	}
+	
+	@Override
+    public void keyReleased(int key, char c) {
+        switch (key) {
+        		case Input.KEY_UP:		this.moving[0] = false; break;
+        		case Input.KEY_RIGHT:   	this.moving[1] = false; break;
+        		case Input.KEY_DOWN:   	this.moving[2] = false; break;
+        		case Input.KEY_LEFT:  	this.moving[3] = false; break;
+        		case Input.KEY_SPACE:	this.shoot = false; break;
+        		case Input.KEY_ESCAPE: 	this.container.exit();
+        }
+    }
+	
+	// Method to check the walls around and update the sprites
+	public void checkSprite(Wall w, int i, int j) throws SlickException {
+		if(j > 0 && j < wall_max_y) {
+			/*
+			-##
+		 	#W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H01.bmp", w.getFilter()));
+			}
+			
+			/*
+			#-#
+		 	#W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H02.bmp", w.getFilter()));
+			}
+			
+			/*
+			##-
+		 	#W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H03.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	-W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				//walls[i][j].setImage(new Image("img/H04.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				//walls[i][j].setImage(new Image("img/H05.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W#
+		 	-##
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H06.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W#
+		 	#-#
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H07.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W#
+		 	##-
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H08.bmp", w.getFilter()));
+			}
+			
+			/*
+			--#
+		 	#W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H09.bmp", w.getFilter()));
+			}
+			
+			/*
+			-#-
+		 	#W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H10.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	-W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H11.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	-W#
+		 	-##
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H11.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	#W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				//walls[i][j].setImage(new Image("img/H12.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	#W#
+		 	-##
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				//walls[i][j].setImage(new Image("img/H13.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	#W#
+		 	#-#
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				//walls[i][j].setImage(new Image("img/H14.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	#W#
+		 	##-
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				//walls[i][j].setImage(new Image("img/H15.bmp", w.getFilter()));
+			}
+			
+			/*
+			#--
+		 	#W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H16.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	#W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H17.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	-W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H18.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	-W#
+		 	-##
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H18.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	-W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	-W-
+		 	-#-
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	-W-
+		 	-##
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	-W-
+		 	##-
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W#
+		 	---
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H20.bmp", w.getFilter()));
+			}
+			
+			/*
+			##-
+		 	#W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H21.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W-
+		 	##-
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H21.bmp", w.getFilter()));
+			}
+			
+			/*
+			-#-
+		 	-W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H22.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	-W-
+		 	-#-
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H22.bmp", w.getFilter()));
+			}
+			
+			/*
+			#--
+		 	#W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H23.bmp", w.getFilter()));
+			}
+			
+			/*
+			#--
+		 	#W-
+		 	##-
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H23.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	#W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H24.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	#W-
+		 	##-
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H24.bmp", w.getFilter()));
+			}
+			
+			/*
+			--#
+		 	-W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H25.bmp", w.getFilter()));
+			}
+			
+			/*
+			--#
+		 	-W#
+		 	-##
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H25.bmp", w.getFilter()));
+			}
+			
+			/*
+			-#-
+		 	#W-
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H26.bmp", w.getFilter()));
+			}
+			
+			/*
+			-#-
+		 	-W#
+		 	###
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H27.bmp", w.getFilter()));
+			}
+			
+			/*
+			---
+		 	-W#
+		 	-##
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			) {
+				//walls[i][j].setImage(new Image("img/H28.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W#
+		 	--#
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H29.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	-W#
+		 	---
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	-W#
+		 	---
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	-W#
+		 	--#
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	-W#
+		 	--#
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	-W#
+		 	-#-
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H32.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	-W#
+		 	-#-
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H32.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	-W-
+		 	---
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+			}
+			
+			/*
+			-##
+		 	-W-
+		 	---
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+			}
+			
+			/*
+			##-
+		 	-W-
+		 	---
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+			}
+			
+			/*
+			-#-
+		 	-W-
+		 	---
+			 */
+			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W-
+		 	---
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H34.bmp", w.getFilter()));
+			}
 
+			/*
+			##-
+		 	#W-
+		 	---
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H34.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W#
+		 	#--
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H35.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W-
+		 	#--
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H36.bmp", w.getFilter()));
+			}
+			
+			/*
+			##-
+		 	#W-
+		 	#--
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H36.bmp", w.getFilter()));
+			}
+			
+			/*
+			###
+		 	#W-
+		 	-#-
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H37.bmp", w.getFilter()));
+			}
+			
+			/*
+			##-
+		 	#W-
+		 	-#-
+			 */
+			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
+			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H37.bmp", w.getFilter()));
+			}
+			
+			
+		}
+		else if(j == 0) {
+			/*
+		 	#W#
+		 	#-#
+			 */
+			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H07.bmp", w.getFilter()));
+			}
+			
+			/*
+		 	#W#
+		 	---
+			 */
+			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H20.bmp", w.getFilter()));
+			}
+			
+			/*
+		 	#W#
+		 	--#
+			 */
+			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H29.bmp", w.getFilter()));
+			}
+			
+			/*
+		 	-W#
+		 	---
+			 */
+			if(walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
+			}
+			
+			/*
+		 	-W#
+		 	--#
+			 */
+			if(walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			) {
+				walls[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
+			}
+			
+			/*
+		 	#W#
+		 	#--
+			 */
+			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
+			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			) {
+				walls[i][j].setImage(new Image("img/H35.bmp", w.getFilter()));
+			}
+		}
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
