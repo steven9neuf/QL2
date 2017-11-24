@@ -14,7 +14,7 @@ public class Shoot extends Object {
 	public Shoot(int x, int y) throws SlickException {
 		this.x = x;
 		this.y = y;
-		this.speed = 4;
+		this.speed = 8;
 		this.image = new Image("img/shoot.bmp", filter);
 	}
 }

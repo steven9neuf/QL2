@@ -18,16 +18,20 @@ import org.newdawn.slick.SlickException;
  *
  */
 public class WindowGame extends BasicGame {
+	private static int maxFPS = 144;
+	private static int width = 1024;
+	private static int height = 768;
+	private static boolean fullscreen = true;
+	
 	private GameContainer container;
 	private Player player;
 	private boolean[] moving = {false, false, false, false};
 	private boolean shoot = false;
-	private static int maxFPS = 144;
 	private ArrayList<Shoot> shoots = new ArrayList<Shoot>();
 	
 	public static void main(String[] args) throws SlickException {
 		try {
-	        AppGameContainer app = new AppGameContainer(new WindowGame(), 640, 480, false);
+	        AppGameContainer app = new AppGameContainer(new WindowGame(), width, height, fullscreen);
 	        app.setTargetFrameRate(maxFPS);
 	        app.setMinimumLogicUpdateInterval(20);
 	        app.setMaximumLogicUpdateInterval(20);
@@ -48,12 +52,16 @@ public class WindowGame extends BasicGame {
 	@Override
 	public void render(GameContainer gc, Graphics g) throws SlickException {
 		//g.drawString("Player 1", 320, 240);
+		
+		
 		// Drawing player
 		int x = this.player.getX();
 		int y = this.player.getY();
 		this.player.getImage().draw(x, y);
 		
 		// Drawing bullets
+		int NbBullet = this.shoots.size();
+		g.drawString(Integer.toString(NbBullet), width - 20, 20);
 		for(int i = 0 ; i < this.shoots.size() ; i++) {
 			x = this.shoots.get(i).getX();
 			y = this.shoots.get(i).getY();
@@ -117,12 +125,17 @@ public class WindowGame extends BasicGame {
 		}
 		
 		// Shooting logic
-		if(this.shoot) {
+		if(this.shoot && player.getLastShoot() >= player.getReloadTime()) {
 			this.shoots.add(new Shoot(x, y));
+			player.setLastShoot(0);
 		}
+		player.setLastShoot(player.getLastShoot() + 1);
 		for(int i = 0 ; i < this.shoots.size() ; i++) {
 			Shoot s = this.shoots.get(i);
 			this.shoots.get(i).setX(s.getX() + s.getSpeed());
+			if(s.getX() > width) {
+				this.shoots.remove(i);
+			}
 		}
 	}
 
