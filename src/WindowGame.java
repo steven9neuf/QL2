@@ -4,7 +4,8 @@
 import Modele.Player;
 import Modele.Shoot;
 import Modele.Background;
-import Modele.Wall;
+import Modele.Cell;
+import Modele.Explosion;
 
 import java.awt.Font;
 import java.awt.FontFormatException;
@@ -33,19 +34,42 @@ import org.apache.logging.log4j.LogManager;
 public class WindowGame extends BasicGame {
 	// Game Parameters
 	// private static int maxFPS = 60;
-	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080 // 2560 * 1440
+	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080
 	private static int width = 1920; 
 	private static int height = 1080;
 	private static int bg_width = 1920;
 	private static int bg_height = 1080;
-	private static boolean fullscreen = false;
+	private static boolean fullscreen = true;
 	private static boolean mouseGrabbed = false;
 	// 1 * 2
-	private static int mesh_width = 9;
-	private static int mesh_height = 18;
+	private static int mesh_width = 16;
+	private static int mesh_height = 16;
 	private static int max_wall_delta = 2;
 	private static int minimum_wall_space = 10;
-	private static final Logger logger = LogManager.getLogger("guru.springframework.blog.log4j2properties");
+	
+	// update refreshing freq
+	private static int update_int = 20;
+	
+	// Life
+	private static int life_rate = 10000;
+	private static int max_life = 5;
+	
+	// Ammo
+	private static int Ammo_rate = 2000;
+	private static int max_ammo = 32;
+	
+	// Explosion
+	private static int explosion_range = 7;
+	private static int explosion_frame_duration = 70;
+	
+	// Score
+	private int score = 0;
+	private int score_count = 0;
+	private static int score_reduction = 50;
+	
+	// Logger
+	private static final Logger logger = LogManager.getLogger("storm");
+	
 	
 	
 	private Image life;
@@ -59,28 +83,26 @@ public class WindowGame extends BasicGame {
 	private boolean shoot = false;
 	private boolean debug = true;
 	private ArrayList<Shoot> shoots = new ArrayList<Shoot>();
-	private Wall[][] walls;
+	private Cell[][] grid;
 	private int bottom_wall;
 	private int top_wall;
 	private int wall_max_y;
+	private int wall_max_x;
 	private int wallMoved = 0;
-	private int wallSpeed = 3;
+	// Has to be a diviser of mesh_width
+	private int gridSpeed = 4;
 	private Font font;
 	private UnicodeFont ufont;
+	private ArrayList<Explosion> explosions = new ArrayList<Explosion>();
 	
 	public static void main(String[] args) throws SlickException {
 		try {
-			logger.debug("msg de debogage");
-		    logger.info("msg d'information");
-		    logger.warn("msg d'avertissement");
-		    logger.error("msg d'erreur");
-		    logger.fatal("msg d'erreur fatale");
 	        AppGameContainer app = new AppGameContainer(new WindowGame(), width, height, fullscreen);
 	        //app.setTargetFrameRate(maxFPS);
-	        app.setMinimumLogicUpdateInterval(20);
-	        app.setMaximumLogicUpdateInterval(20);
-	        app.setMouseGrabbed(mouseGrabbed);
 	        app.setVSync(true);
+	        app.setMinimumLogicUpdateInterval(update_int);
+	        app.setMaximumLogicUpdateInterval(update_int);
+	        app.setMouseGrabbed(mouseGrabbed);
 	        app.start();
 		}
 		catch (Exception e){
@@ -131,14 +153,15 @@ public class WindowGame extends BasicGame {
 		bullet = new Image("img/shoot.bmp", player.getFilter());
 		
 		// Bottom wall initialization
-		walls = new Wall[width / mesh_width + 4][height / mesh_height + 1];
 		bottom_wall = height / mesh_height;
 		wall_max_y = bottom_wall;
-		walls[walls.length - 1][walls[0].length - 1] = new Wall(mesh_width * (walls.length - 1), mesh_height * (walls[0].length - 1));
+		wall_max_x = width / mesh_width + 3;
+		grid = new Cell[wall_max_x + 1][wall_max_y + 1];
+		grid[grid.length - 1][grid[0].length - 1] = new Cell(mesh_width * (grid.length - 1), mesh_height * (grid[0].length - 1), "wall", mesh_width, mesh_height);
 		
 		// Top wall initialization
 		top_wall = 0;
-		walls[walls.length - 1][0] = new Wall(mesh_width * (walls.length - 1), 0);
+		grid[grid.length - 1][0] = new Cell(mesh_width * (grid.length - 1), 0, "wall", mesh_width, mesh_height);
 	}
 	
 	/*************************************************************************/
@@ -158,7 +181,6 @@ public class WindowGame extends BasicGame {
 		// Drawing player
 		int x = this.player.getX();
 		int y = this.player.getY();
-		//this.player.getImage().draw(x, y);
 		g.drawAnimation(player.getAnimation(), x, y);
 		
 		// Drawing bullets
@@ -169,14 +191,18 @@ public class WindowGame extends BasicGame {
 		}	
 		
 		// Drawing wall
-		for(int i = 0 ; i < walls.length ; i++) {
-			for(int j = 0 ; j < walls[0].length ; j++) {
-				if(walls[i][j] != null) {
-					
-					walls[i][j].getImage().draw(walls[i][j].getX(), walls[i][j].getY(), mesh_width, mesh_height);
-					//g.drawString("X", walls[i][j].getX(), walls[i][j].getY());
+		for(int i = 0 ; i < grid.length ; i++) {
+			for(int j = 0 ; j < grid[0].length ; j++) {
+				if(grid[i][j] != null) {
+					grid[i][j].getImage().draw(grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
 				}
 			}
+		}
+		
+		// Drawing explosions
+		for(int i = 0 ; i < explosions.size() ; i++) {
+			//g.drawAnimation(explosions.get(i).getAnimation(), explosions.get(i).getX(), explosions.get(i).getY());
+			explosions.get(i).getAnimation().draw(explosions.get(i).getX(), explosions.get(i).getY(), explosions.get(i).getWidth(), explosions.get(i).getHeight());
 		}
 		
 		// Drawing informations
@@ -184,22 +210,25 @@ public class WindowGame extends BasicGame {
 			int padding = 150;
 			g.drawString("Bullets : " + this.shoots.size(), width - padding, 10);
 			g.drawString("Bg : " + this.bgs.size(), width - padding, 30);
-			g.drawString("Wall_width : " + this.walls.length, width - padding, 50);
-			g.drawString("Wall_height : " + this.walls[0].length, width - padding, 70);
+			g.drawString("Wall_width : " + this.grid.length, width - padding, 50);
+			g.drawString("Wall_height : " + this.grid[0].length, width - padding, 70);
 			g.drawString("top_wall : " + top_wall, width - padding, 90);
 			g.drawString("Bottom_wall : " + bottom_wall, width - padding, 110);
 		}
 		
 		// Drawing HUD
 		// Bullets
-		bullet.draw(20, height - 90, 32, 32);
-		ufont.drawString(70, height - 88, ": " + player.getAmmo());
+		bullet.draw(20, height - 140, 32, 32);
+		ufont.drawString(70, height - 133, ": " + player.getAmmo());
 		
 		// Life
-		ufont.drawString(20, height - 40, "Life :");
+		ufont.drawString(20, height - 90, "Life :");
 		for(int i = 0 ; i < player.getLife() ; i++) {
-			life.draw(170 + 42 * i, height - 45, 32, 32);
+			life.draw(170 + 42 * i, height - 95, 32, 32);
 		}
+		
+		// Score
+		ufont.drawString(20, height - 40, "Score : " + score);
 	}
 
 	
@@ -211,6 +240,13 @@ public class WindowGame extends BasicGame {
 	 */
 	@Override
 	public void update(GameContainer arg0, int arg1) throws SlickException {	
+		// Score logic
+		score_count ++;
+		if(score_count >= score_reduction) {
+			score ++;
+			score_count = 0;
+		}
+		
 		// Background logic
 		for(int i = 0 ; i < this.bgs.size() ; i++) {
 			Background bg = this.bgs.get(i);
@@ -244,6 +280,7 @@ public class WindowGame extends BasicGame {
 		
 		// Shooting logic
 		if(this.shoot && player.getLastShoot() >= player.getReloadTime() && player.getAmmo() > 0) {
+			logger.info("Player shot");
 			this.shoots.add(new Shoot(x, y));
 			player.setLastShoot(0);
 			player.setAmmo(player.getAmmo() - 1);
@@ -257,46 +294,56 @@ public class WindowGame extends BasicGame {
 			}
 		}
 		
+		// Explosion logic
+		for(int i = 0 ; i < explosions.size() ; i++) {
+			explosions.get(i).setX(explosions.get(i).getX() - gridSpeed);
+			explosions.get(i).setTimer(explosions.get(i).getTimer() + update_int);
+			if(explosions.get(i).getTimer() > explosion_frame_duration * 11)
+				explosions.remove(i);
+		}
+		
 		// Wall logic
-		wallMoved += wallSpeed;
+		wallMoved += gridSpeed;
 		boolean moved = false;
-		for(int i = 0 ; i < walls.length ; i++) {
-			for(int j = 0 ; j < walls[0].length ; j++) {
+		for(int i = 0 ; i < grid.length ; i++) {
+			for(int j = 0 ; j < grid[0].length ; j++) {
 				
 				// Check if wall exists
-				if(walls[i][j] != null) {
-					// Updating walls sprites
+				if(grid[i][j] != null) {
+					// Updating grid sprites
 					// -1 is last column 
 					// -2 is before last but last column is not generated yet (below)
 					// So we check at the -3 column
-					if(i == walls.length - 3 && wallMoved == wallSpeed) {
-						checkSprite(walls[i][j], i, j);
+					if(i == grid.length - 3 && wallMoved == gridSpeed) {
+						checkSprite(grid[i][j], i, j);
 					}
 					
 					// Scrolling wall to the left
-					walls[i][j].setX(walls[i][j].getX() - wallSpeed);
+					grid[i][j].setX(grid[i][j].getX() - gridSpeed);
 					if(wallMoved >= mesh_width) {
 						moved = true;
 						if(i > 0) {
-							walls[i - 1][j] = walls[i][j];
+							grid[i - 1][j] = grid[i][j];
 						}
-						walls[i][j] = null;
+						grid[i][j] = null;
 					}
 				}
 			}
-			// Generated new walls
-			if(i == walls.length - 1 && moved) {
+			// Generate new objects
+			if(i == grid.length - 1 && moved) {
+				// Generate new grid
+				
 				// For bottom wall
 				int next = rand.nextInt(2 * max_wall_delta + 1) - max_wall_delta;
 				if(bottom_wall + next < top_wall + minimum_wall_space || bottom_wall + next > wall_max_y) {
 					next = 0;
 				}
 				bottom_wall += next;
-				walls[i][bottom_wall] = new Wall(i * mesh_width, bottom_wall * mesh_height);
+				grid[i][bottom_wall] = new Cell(i * mesh_width, bottom_wall * mesh_height, "wall", mesh_width, mesh_height);
 				
-				// Fill all the walls under bottom wall
-				for(int j = bottom_wall + 1 ; j < walls[0].length ; j++) {
-					walls[i][j] = new Wall(i * mesh_width, j * mesh_height);
+				// Fill all the grid under bottom wall
+				for(int j = bottom_wall + 1 ; j < grid[0].length ; j++) {
+					grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "wall", mesh_width, mesh_height);
 				}
 				
 				
@@ -306,23 +353,115 @@ public class WindowGame extends BasicGame {
 					next = 0;
 				}
 				top_wall += next;
-				walls[i][top_wall] = new Wall(i * mesh_width, top_wall * mesh_height);
+				grid[i][top_wall] = new Cell(i * mesh_width, top_wall * mesh_height, "wall", mesh_width, mesh_height);
 				
-				// Fill all the walls over top wall
+				// Fill all the grid over top wall
 				for(int j = top_wall - 1 ; j >= 0 ; j--) {
-					walls[i][j] = new Wall(i * mesh_width, j * mesh_height);
+					grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "wall", mesh_width, mesh_height);
+				}
+			
+				// Generate Ammo and life
+				for(int j = 0 ; j < grid[0].length ; j++) {
+					if(grid[i][j] == null) {
+						next = rand.nextInt(Ammo_rate);
+						if(next == 0) {
+							grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "ammo");
+						}
+						else{
+							next = rand.nextInt(life_rate);
+							if(next == 0) {
+								grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "life");
+							}
+						}
+						
+					}
 				}
 			}
 		}
 		if(wallMoved >= mesh_width) {
 			wallMoved = 0;
 		}
+		
+		checkCollision();
 	}
 	
 	
 	/*************************************************************************/
 	/******************************** Methods ********************************/
 	/*************************************************************************/
+	
+	public void checkCollision() throws SlickException {
+		for(int i = 0 ; i < grid.length ; i++) {
+			for(int j = 0 ; j < grid[0].length ; j++) {
+				if(grid[i][j] != null) {
+					boolean col = intersect(player, grid[i][j]);
+					if(col) {
+						switch(grid[i][j].getType()) {
+						case "ammo":
+							if(player.getAmmo() + 10 < max_ammo) 
+								player.setAmmo(player.getAmmo() + 10);
+							else
+								player.setAmmo(max_ammo);
+							grid[i][j] = null;
+							break;
+						case "life":
+							if(player.getLife() + 1 <= max_life) 
+								player.setLife(player.getLife() + 1);
+							grid[i][j] = null;
+							break;
+						case "wall":
+							if(player.getLife() > 0) {
+								player.setLife(player.getLife() - 1);
+								explode(i, j);
+							}
+							break;
+						default:
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Check if two entities collide
+	public boolean intersect(Player p, Cell c) {
+		boolean bool = false;
+		boolean int_X = intersect_segments(c.getX(), c.getX() + c.getWidth(), p.getX(), p.getX() + p.getWidth());
+		boolean int_Y = intersect_segments(c.getY(), c.getY() + c.getHeight(), p.getY(), p.getY() + p.getHeight());
+		if(int_X && int_Y)
+			bool = true;
+		return bool;
+	}
+	
+	// Check if two segment intersect
+	public boolean intersect_segments(int a, int b, int c, int d) {
+		boolean bool = false;
+		if(c > a && c < b || d > a && d < b || c <= a && d >= b)
+			bool = true;
+		return bool;
+	}
+	
+	// Explosion around after collision
+	public void explode(int x, int y) throws SlickException {
+		explosions.add(new Explosion(x * mesh_width - explosion_range * mesh_width, y * mesh_height - explosion_range * mesh_height, explosion_frame_duration, explosion_range * mesh_width * 2, explosion_range * mesh_height * 2));
+		for(int i = x - explosion_range ; i <= x + explosion_range ; i++) {
+			for(int j = y - explosion_range ; j <= y + explosion_range ; j++) {
+				if(i >= 0 && i <= wall_max_x && j >= 0 && j <= wall_max_y && (Math.pow(i - x, 2) + Math.pow(j - y, 2)) <= Math.pow(explosion_range, 2)) {
+					grid[i][j] = null;
+				}
+			}
+		}
+		for(int i = x - explosion_range - 1 ; i <= x + explosion_range + 1 ; i++) {
+			for(int j = y - explosion_range - 1 ; j <= y + explosion_range + 1 ; j++) {
+				if(i > 0 && i <= grid.length - 2 && grid[i][j] != null) {
+					checkSprite(grid[i][j], i, j);
+				}
+			}
+		}
+		
+	}
+	
 	@Override
 	public void keyPressed(int key, char c) {
 	    switch (key) {
@@ -347,19 +486,19 @@ public class WindowGame extends BasicGame {
         }
     }
 	
-	// Method to check the walls around and update the sprites
-	public void checkSprite(Wall w, int i, int j) throws SlickException {
+	// Method to check the grid around and update the sprites
+	public void checkSprite(Cell w, int i, int j) throws SlickException {
 		if(j > 0 && j < wall_max_y) {
 			/*
 			-##
 		 	#W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H01.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H01.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -367,11 +506,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] == null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H02.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H02.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -379,11 +518,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H03.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H03.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -391,11 +530,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				//walls[i][j].setImage(new Image("img/H04.bmp", w.getFilter()));
+				//grid[i][j].setImage(new Image("img/H04.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -403,11 +542,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				//walls[i][j].setImage(new Image("img/H05.bmp", w.getFilter()));
+				//grid[i][j].setImage(new Image("img/H05.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -415,11 +554,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	-##
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H06.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H06.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -427,11 +566,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	#-#
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H07.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H07.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -439,11 +578,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	##-
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H08.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H08.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -451,11 +590,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H09.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H09.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -463,11 +602,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H10.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H10.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -475,11 +614,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H11.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H11.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -487,11 +626,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	-##
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H11.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H11.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -499,11 +638,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				//walls[i][j].setImage(new Image("img/H12.bmp", w.getFilter()));
+				//grid[i][j].setImage(new Image("img/H12.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -511,11 +650,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	-##
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				//walls[i][j].setImage(new Image("img/H13.bmp", w.getFilter()));
+				//grid[i][j].setImage(new Image("img/H13.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -523,11 +662,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	#-#
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				//walls[i][j].setImage(new Image("img/H14.bmp", w.getFilter()));
+				//grid[i][j].setImage(new Image("img/H14.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -535,11 +674,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	##-
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				//walls[i][j].setImage(new Image("img/H15.bmp", w.getFilter()));
+				//grid[i][j].setImage(new Image("img/H15.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -547,11 +686,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H16.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H16.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -559,11 +698,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H17.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H17.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -571,11 +710,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H18.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H18.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -583,11 +722,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	-##
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H18.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H18.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -595,11 +734,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -607,11 +746,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	-#-
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -619,11 +758,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	-##
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -631,11 +770,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	##-
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H19.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -643,11 +782,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	---
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H20.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H20.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -655,11 +794,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H21.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H21.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -667,11 +806,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	##-
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H21.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H21.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -679,11 +818,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H22.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H22.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -691,11 +830,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	-#-
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H22.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H22.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -703,11 +842,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H23.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H23.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -715,11 +854,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	##-
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H23.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H23.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -727,11 +866,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H24.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H24.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -739,11 +878,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	##-
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H24.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H24.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -751,11 +890,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H25.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H25.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -763,11 +902,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	-##
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H25.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H25.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -775,11 +914,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H26.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H26.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -787,11 +926,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	###
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H27.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H27.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -799,11 +938,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	-##
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] == null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] == null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
-				//walls[i][j].setImage(new Image("img/H28.bmp", w.getFilter()));
+				//grid[i][j].setImage(new Image("img/H28.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -811,11 +950,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	--#
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H29.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H29.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -823,11 +962,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	---
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -835,11 +974,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	---
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -847,11 +986,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	--#
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -859,11 +998,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	--#
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -871,11 +1010,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	-#-
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H32.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H32.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -883,11 +1022,11 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	-#-
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H32.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H32.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -895,11 +1034,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	---
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -907,11 +1046,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	---
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -919,11 +1058,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	---
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -931,11 +1070,11 @@ public class WindowGame extends BasicGame {
 		 	-W-
 		 	---
 			 */
-			if(walls[i - 1][j - 1] == null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] == null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H33.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -943,11 +1082,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	---
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H34.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H34.bmp", w.getFilter()));
 			}
 
 			/*
@@ -955,11 +1094,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	---
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H34.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H34.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -967,11 +1106,11 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	#--
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H35.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H35.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -979,11 +1118,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	#--
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H36.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H36.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -991,11 +1130,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	#--
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H36.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H36.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -1003,11 +1142,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	-#-
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] != null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H37.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H37.bmp", w.getFilter()));
 			}
 			
 			/*
@@ -1015,11 +1154,11 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	-#-
 			 */
-			if(walls[i - 1][j - 1] != null && walls[i][j - 1] != null && walls[i + 1][j - 1] == null
-			&& walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] == null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] != null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] == null
+			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] != null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H37.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H37.bmp", w.getFilter()));
 			}
 			
 			
@@ -1029,60 +1168,60 @@ public class WindowGame extends BasicGame {
 		 	#W#
 		 	#-#
 			 */
-			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H07.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H07.bmp", w.getFilter()));
 			}
 			
 			/*
 		 	#W#
 		 	---
 			 */
-			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H20.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H20.bmp", w.getFilter()));
 			}
 			
 			/*
 		 	#W#
 		 	--#
 			 */
-			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H29.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H29.bmp", w.getFilter()));
 			}
 			
 			/*
 		 	-W#
 		 	---
 			 */
-			if(walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H30.bmp", w.getFilter()));
 			}
 			
 			/*
 		 	-W#
 		 	--#
 			 */
-			if(walls[i - 1][j    ] == null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] == null && walls[i][j + 1] == null && walls[i + 1][j + 1] != null	
+			if(grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] == null && grid[i][j + 1] == null && grid[i + 1][j + 1] != null	
 			) {
-				walls[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H31.bmp", w.getFilter()));
 			}
 			
 			/*
 		 	#W#
 		 	#--
 			 */
-			if(walls[i - 1][j    ] != null  						  && walls[i + 1][j    ] != null
-			&& walls[i - 1][j + 1] != null && walls[i][j + 1] == null && walls[i + 1][j + 1] == null	
+			if(grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] != null
+			&& grid[i - 1][j + 1] != null && grid[i][j + 1] == null && grid[i + 1][j + 1] == null	
 			) {
-				walls[i][j].setImage(new Image("img/H35.bmp", w.getFilter()));
+				grid[i][j].setImage(new Image("img/H35.bmp", w.getFilter()));
 			}
 		}
 	}

@@ -20,6 +20,8 @@ public class Player extends Object {
 	public Player(int x, int y) throws SlickException {
 		this.x = x;
 		this.y = y;
+		this.width = 40;
+		this.height = 17;
 		this.speed = 5;
 		this.reloadTime = 15;
 		this.lastShoot = 0;
