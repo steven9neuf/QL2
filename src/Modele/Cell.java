@@ -12,6 +12,7 @@ import org.newdawn.slick.SlickException;
  */
 public class Cell extends Object{
 	private String type;
+	private int value;
 	
 	public Cell(int x, int y, String type) throws SlickException {
 		this.x = x;
@@ -36,6 +37,11 @@ public class Cell extends Object{
 		}
 	}
 	
+	public Cell(int x, int y, String type, int value) throws SlickException {
+		this(x, y, type);
+		this.value = value;
+	}
+	
 	public Cell(int x, int y, String type, int w, int h) throws SlickException {
 		this(x, y, type);
 		this.width = w;
@@ -54,5 +60,19 @@ public class Cell extends Object{
 	 */
 	public void setType(String type) {
 		this.type = type;
+	}
+
+	/**
+	 * @return the value
+	 */
+	public int getValue() {
+		return value;
+	}
+
+	/**
+	 * @param value the value to set
+	 */
+	public void setValue(int value) {
+		this.value = value;
 	}
 }

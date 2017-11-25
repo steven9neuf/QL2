@@ -3,6 +3,7 @@
  */
 import Modele.Player;
 import Modele.Shoot;
+import Modele.Text;
 import Modele.Background;
 import Modele.Cell;
 import Modele.Explosion;
@@ -57,6 +58,7 @@ public class WindowGame extends BasicGame {
 	// Ammo
 	private static int Ammo_rate = 2000;
 	private static int max_ammo = 32;
+	private static int ammo_score = 30;
 	
 	// Explosion
 	private static int explosion_range = 7;
@@ -66,6 +68,10 @@ public class WindowGame extends BasicGame {
 	private int score = 0;
 	private int score_count = 0;
 	private static int score_reduction = 50;
+	
+	// Text
+	private int text_duration = 50;
+	private int text_delta = 3;
 	
 	// Logger
 	private static final Logger logger = LogManager.getLogger("storm");
@@ -83,6 +89,7 @@ public class WindowGame extends BasicGame {
 	private boolean shoot = false;
 	private boolean debug = true;
 	private ArrayList<Shoot> shoots = new ArrayList<Shoot>();
+	private ArrayList<Text> texts = new ArrayList<Text>();
 	private Cell[][] grid;
 	private int bottom_wall;
 	private int top_wall;
@@ -92,7 +99,9 @@ public class WindowGame extends BasicGame {
 	// Has to be a diviser of mesh_width
 	private int gridSpeed = 4;
 	private Font font;
-	private UnicodeFont ufont;
+	
+	private UnicodeFont HUD_font;
+	private UnicodeFont text_font;
 	private ArrayList<Explosion> explosions = new ArrayList<Explosion>();
 	
 	public static void main(String[] args) throws SlickException {
@@ -141,12 +150,21 @@ public class WindowGame extends BasicGame {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		// HUD Font
 		font = font.deriveFont(24f);
-		ufont = new UnicodeFont(font, font.getSize(), font.isBold(), font.isItalic());
-		ufont.addAsciiGlyphs();
-		ufont.addGlyphs(400, 600);
-		ufont.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
-		ufont.loadGlyphs();
+		HUD_font = new UnicodeFont(font, font.getSize(), font.isBold(), font.isItalic());
+		HUD_font.addAsciiGlyphs();
+		HUD_font.addGlyphs(400, 600);
+		HUD_font.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
+		HUD_font.loadGlyphs();
+		
+		// Text score font
+		font = font.deriveFont(10f);
+		text_font = new UnicodeFont(font, font.getSize(), font.isBold(), font.isItalic());
+		text_font.addAsciiGlyphs();
+		text_font.addGlyphs(400, 600);
+		text_font.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
+		text_font.loadGlyphs();
 		
 		// Image initialization
 		life = new Image("img/life.png");
@@ -217,18 +235,26 @@ public class WindowGame extends BasicGame {
 		}
 		
 		// Drawing HUD
-		// Bullets
-		bullet.draw(20, height - 140, 32, 32);
-		ufont.drawString(70, height - 133, ": " + player.getAmmo());
-		
-		// Life
-		ufont.drawString(20, height - 90, "Life :");
-		for(int i = 0 ; i < player.getLife() ; i++) {
-			life.draw(170 + 42 * i, height - 95, 32, 32);
+		// Text
+		for(int i = 0 ; i < texts.size() ; i++) {
+			if(texts.get(i).getType() == "game")
+				text_font.drawString(texts.get(i).getX(), texts.get(i).getY(), texts.get(i).getText());
+			else
+				HUD_font.drawString(texts.get(i).getX(), texts.get(i).getY(), texts.get(i).getText());
 		}
 		
 		// Score
-		ufont.drawString(20, height - 40, "Score : " + score);
+		HUD_font.drawString(20, height - 126, "Score : " + score);
+		
+		// Bullets
+		bullet.draw(20, height - 90, 32, 32);
+		HUD_font.drawString(70, height - 83, ": " + player.getAmmo());
+		
+		// Life
+		HUD_font.drawString(20, height - 40, "Life :");
+		for(int i = 0 ; i < player.getLife() ; i++) {
+			life.draw(170 + 42 * i, height - 45, 32, 32);
+		}
 	}
 
 	
@@ -245,6 +271,15 @@ public class WindowGame extends BasicGame {
 		if(score_count >= score_reduction) {
 			score ++;
 			score_count = 0;
+		}
+		
+		// Text logic
+		for(int i = 0 ; i < texts.size() ; i++) {
+			texts.get(i).setTimer(texts.get(i).getTimer() + 1);
+			texts.get(i).setY(texts.get(i).getY() - (int)Math.round(Math.pow(texts.get(i).getTimer(), 2) / Math.pow(text_duration, 2) * text_delta));
+			if(texts.get(i).getTimer() >= text_duration) {
+				texts.remove(i);
+			}
 		}
 		
 		// Background logic
@@ -365,7 +400,7 @@ public class WindowGame extends BasicGame {
 					if(grid[i][j] == null) {
 						next = rand.nextInt(Ammo_rate);
 						if(next == 0) {
-							grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "ammo");
+							grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "ammo", rand.nextInt(6) + 5);
 						}
 						else{
 							next = rand.nextInt(life_rate);
@@ -398,10 +433,13 @@ public class WindowGame extends BasicGame {
 					if(col) {
 						switch(grid[i][j].getType()) {
 						case "ammo":
-							if(player.getAmmo() + 10 < max_ammo) 
-								player.setAmmo(player.getAmmo() + 10);
+							if(player.getAmmo() + grid[i][j].getValue() < max_ammo) 
+								player.setAmmo(player.getAmmo() + grid[i][j].getValue());
 							else
 								player.setAmmo(max_ammo);
+							texts.add(new Text(i * mesh_width, j * mesh_height, "+" + grid[i][j].getValue(), new Color(255, 255, 255), "game"));
+							texts.add(new Text(200, height - 169, "+" + ammo_score, new Color(255, 255, 255), "HUD"));
+							score += ammo_score;
 							grid[i][j] = null;
 							break;
 						case "life":
@@ -412,8 +450,8 @@ public class WindowGame extends BasicGame {
 						case "wall":
 							if(player.getLife() > 0) {
 								player.setLife(player.getLife() - 1);
-								explode(i, j);
 							}
+							explode(i, j);
 							break;
 						default:
 							break;
@@ -454,7 +492,7 @@ public class WindowGame extends BasicGame {
 		}
 		for(int i = x - explosion_range - 1 ; i <= x + explosion_range + 1 ; i++) {
 			for(int j = y - explosion_range - 1 ; j <= y + explosion_range + 1 ; j++) {
-				if(i > 0 && i <= grid.length - 2 && grid[i][j] != null) {
+				if(i > 0 && i <= grid.length - 2 && j >= 0 && j < grid[0].length && grid[i][j] != null) {
 					checkSprite(grid[i][j], i, j);
 				}
 			}
