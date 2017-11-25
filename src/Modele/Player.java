@@ -15,6 +15,7 @@ public class Player extends Object {
 	private int reloadTime;
 	private int lastShoot;
 	private int life;
+	private int ammo;
 	
 	public Player(int x, int y) throws SlickException {
 		this.x = x;
@@ -23,6 +24,7 @@ public class Player extends Object {
 		this.reloadTime = 15;
 		this.lastShoot = 0;
 		this.life = 3;
+		this.ammo = 32;
 		this.animation = new Animation();
 		this.animation.addFrame(new Image("img/player_frame1.bmp", filter), 100);
 		this.animation.addFrame(new Image("img/player_frame2.bmp", filter), 100);
@@ -68,5 +70,19 @@ public class Player extends Object {
 	 */
 	public void setLife(int life) {
 		this.life = life;
+	}
+
+	/**
+	 * @return the ammo
+	 */
+	public int getAmmo() {
+		return ammo;
+	}
+
+	/**
+	 * @param ammo the ammo to set
+	 */
+	public void setAmmo(int ammo) {
+		this.ammo = ammo;
 	}	
 }

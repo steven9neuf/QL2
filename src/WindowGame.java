@@ -31,12 +31,12 @@ import org.newdawn.slick.font.effects.ColorEffect;
 public class WindowGame extends BasicGame {
 	// Game Parameters
 	private static int maxFPS = 60;
-	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080
-	private static int width = 1440; 
-	private static int height = 900;
+	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080 // 2560 * 1440
+	private static int width = 1920; 
+	private static int height = 1080;
 	private static int bg_width = 1920;
 	private static int bg_height = 1080;
-	private static boolean fullscreen = false;
+	private static boolean fullscreen = true;
 	private static boolean mouseGrabbed = false;
 	// 1 * 2
 	private static int mesh_width = 9;
@@ -44,6 +44,7 @@ public class WindowGame extends BasicGame {
 	private static int max_wall_delta = 2;
 	private static int minimum_wall_space = 10;
 	private Image life;
+	private Image bullet;
 	
 	private Random rand = new Random();
 	private GameContainer container;
@@ -115,7 +116,9 @@ public class WindowGame extends BasicGame {
 		ufont.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
 		ufont.loadGlyphs();
 		
+		// Image initialization
 		life = new Image("img/life.png");
+		bullet = new Image("img/shoot.bmp", player.getFilter());
 		
 		// Bottom wall initialization
 		walls = new Wall[width / mesh_width + 4][height / mesh_height + 1];
@@ -178,6 +181,11 @@ public class WindowGame extends BasicGame {
 		}
 		
 		// Drawing HUD
+		// Bullets
+		bullet.draw(20, height - 90, 32, 32);
+		ufont.drawString(70, height - 88, ": " + player.getAmmo());
+		
+		// Life
 		ufont.drawString(20, height - 40, "Life :");
 		for(int i = 0 ; i < player.getLife() ; i++) {
 			life.draw(170 + 42 * i, height - 45, 32, 32);
@@ -225,9 +233,10 @@ public class WindowGame extends BasicGame {
 		}
 		
 		// Shooting logic
-		if(this.shoot && player.getLastShoot() >= player.getReloadTime()) {
+		if(this.shoot && player.getLastShoot() >= player.getReloadTime() && player.getAmmo() > 0) {
 			this.shoots.add(new Shoot(x, y));
 			player.setLastShoot(0);
+			player.setAmmo(player.getAmmo() - 1);
 		}
 		player.setLastShoot(player.getLastShoot() + 1);
 		for(int i = 0 ; i < this.shoots.size() ; i++) {
