@@ -23,6 +23,8 @@ import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.UnicodeFont;
 import org.newdawn.slick.font.effects.ColorEffect;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * @author steven
@@ -30,19 +32,22 @@ import org.newdawn.slick.font.effects.ColorEffect;
  */
 public class WindowGame extends BasicGame {
 	// Game Parameters
-	private static int maxFPS = 60;
+	// private static int maxFPS = 60;
 	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080 // 2560 * 1440
 	private static int width = 1920; 
 	private static int height = 1080;
 	private static int bg_width = 1920;
 	private static int bg_height = 1080;
-	private static boolean fullscreen = true;
+	private static boolean fullscreen = false;
 	private static boolean mouseGrabbed = false;
 	// 1 * 2
 	private static int mesh_width = 9;
 	private static int mesh_height = 18;
 	private static int max_wall_delta = 2;
 	private static int minimum_wall_space = 10;
+	private static final Logger logger = LogManager.getLogger("guru.springframework.blog.log4j2properties");
+	
+	
 	private Image life;
 	private Image bullet;
 	
@@ -65,6 +70,11 @@ public class WindowGame extends BasicGame {
 	
 	public static void main(String[] args) throws SlickException {
 		try {
+			logger.debug("msg de debogage");
+		    logger.info("msg d'information");
+		    logger.warn("msg d'avertissement");
+		    logger.error("msg d'erreur");
+		    logger.fatal("msg d'erreur fatale");
 	        AppGameContainer app = new AppGameContainer(new WindowGame(), width, height, fullscreen);
 	        //app.setTargetFrameRate(maxFPS);
 	        app.setMinimumLogicUpdateInterval(20);

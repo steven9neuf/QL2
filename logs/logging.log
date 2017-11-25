@@ -1,0 +1,5 @@
+[DEBUG] 2017-11-25 14:36:36 [main] log4j2properties - msg de debogage
+[INFO ] 2017-11-25 14:36:36 [main] log4j2properties - msg d'information
+[WARN ] 2017-11-25 14:36:36 [main] log4j2properties - msg d'avertissement
+[ERROR] 2017-11-25 14:36:36 [main] log4j2properties - msg d'erreur
+[FATAL] 2017-11-25 14:36:36 [main] log4j2properties - msg d'erreur fatale
