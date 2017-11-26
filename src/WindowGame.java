@@ -3,9 +3,11 @@
  */
 import Modele.Player;
 import Modele.Shoot;
+import Modele.Teleportation;
 import Modele.Text;
 import Modele.Background;
 import Modele.Cell;
+import Modele.Enemy;
 import Modele.Explosion;
 
 import java.awt.Font;
@@ -53,17 +55,24 @@ public class WindowGame extends BasicGame {
 	
 	// Life
 	private static int life_rate = 10000;
-	private static int max_life = 5;
 	private static int life_score = 50;
 	
 	// Ammo
 	private static int Ammo_rate = 2000;
-	private static int max_ammo = 32;
 	private static int ammo_score = 30;
+	
+	// Enemies
+	private ArrayList<Enemy> enemies = new ArrayList<Enemy>(); 
+	private static int[] enemy_rate = {100};
 	
 	// Explosion
 	private static int explosion_range = 7;
 	private static int explosion_frame_duration = 70;
+	
+	// TP
+	private static int tp_frame_duration = 60;
+	private static int tp_width = 50;
+	private static int tp_height = 50;
 	
 	// Score
 	private int score = 0;
@@ -77,6 +86,16 @@ public class WindowGame extends BasicGame {
 	// Logger
 	private static final Logger logger = LogManager.getLogger("storm");
 	
+	// Player
+	private static int tp_range = 300;
+	private static int[] level_life = {3, 4};
+	private static int[] level_ammo = {32, 36};
+	
+	// Info_bar
+	private static int info_height = 2;
+	
+	// Stage
+	private int stage = 1;
 	
 	
 	private Image life;
@@ -92,6 +111,7 @@ public class WindowGame extends BasicGame {
 	private boolean tp = false;
 	private ArrayList<Shoot> shoots = new ArrayList<Shoot>();
 	private ArrayList<Text> texts = new ArrayList<Text>();
+	private ArrayList<Teleportation> tps = new ArrayList<Teleportation>();
 	private Cell[][] grid;
 	private int bottom_wall;
 	private int top_wall;
@@ -208,7 +228,7 @@ public class WindowGame extends BasicGame {
 			x = this.shoots.get(i).getX();
 			y = this.shoots.get(i).getY();
 			this.shoots.get(i).getImage().draw(x, y);
-		}	
+		}
 		
 		// Drawing wall
 		for(int i = 0 ; i < grid.length ; i++) {
@@ -219,10 +239,28 @@ public class WindowGame extends BasicGame {
 			}
 		}
 		
+		// Drawing enemies
+		for(int i = 0 ; i < this.enemies.size() ; i++) {
+			x = this.enemies.get(i).getX();
+			y = this.enemies.get(i).getY();
+			switch(enemies.get(i).getType()) {
+				case 0:
+					this.enemies.get(i).getImage().draw(x, y, enemies.get(i).getWidth(), enemies.get(i).getHeight(), new Color(255, 255, 255));
+					break;
+				default:
+					break;
+			}
+			
+		}
+		
 		// Drawing explosions
 		for(int i = 0 ; i < explosions.size() ; i++) {
-			//g.drawAnimation(explosions.get(i).getAnimation(), explosions.get(i).getX(), explosions.get(i).getY());
 			explosions.get(i).getAnimation().draw(explosions.get(i).getX(), explosions.get(i).getY(), explosions.get(i).getWidth(), explosions.get(i).getHeight());
+		}
+		
+		// Drawing tps
+		for(int i = 0 ; i < tps.size() ; i++) {
+			tps.get(i).getAnimation().draw(tps.get(i).getX(), tps.get(i).getY(), tps.get(i).getWidth(), tps.get(i).getHeight());
 		}
 		
 		// Drawing informations
@@ -234,6 +272,7 @@ public class WindowGame extends BasicGame {
 			g.drawString("Wall_height : " + this.grid[0].length, width - padding, 70);
 			g.drawString("top_wall : " + top_wall, width - padding, 90);
 			g.drawString("Bottom_wall : " + bottom_wall, width - padding, 110);
+			g.drawString("Enemies : " + enemies.size(), width - padding, 130);
 		}
 		
 		// Drawing HUD
@@ -244,6 +283,20 @@ public class WindowGame extends BasicGame {
 			else
 				HUD_font.drawString(texts.get(i).getX(), texts.get(i).getY(), texts.get(i).getText());
 		}
+		
+		// Player
+		HUD_font.drawString(20, 20, "Stage " + stage);
+		HUD_font.drawString(20, 70, "Level " + player.getLevel());
+		life.draw(20, 115, 32, 32);
+		HUD_font.drawString(60, 120, ": " + level_life[player.getLevel() - 1]);
+		bullet.draw(20, 165, 32, 32);
+		HUD_font.drawString(60, 170, ": " + level_ammo[player.getLevel() - 1]);
+		
+		// Info_bar
+		if(player.getLast_tp() < player.getTp_reload())
+			player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth() * player.getLast_tp() / player.getTp_reload(), info_height, new Color(0, 191, 255));
+		else
+			player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth(), info_height, new Color(0, 255, 191));
 		
 		// Score
 		HUD_font.drawString(20, height - 126, "Score : " + score);
@@ -300,6 +353,8 @@ public class WindowGame extends BasicGame {
 		}
 		
 		// Moving logic
+		if(player.getLast_tp() + 1 <= player.getTp_reload())
+			player.setLast_tp(player.getLast_tp() + 1);
 		int x = player.getX();
 		int y = player.getY();
 		if(this.moving[0]) {
@@ -314,8 +369,11 @@ public class WindowGame extends BasicGame {
 		if(this.moving[3]) {
 			player.setX(x - player.getSpeed());
 		}
-		if(tp) {
-			player.setX(x + 100);
+		if(tp && player.getLast_tp() >= player.getTp_reload()) {  
+			player.setX(x + tp_range);
+			player.setLast_tp(0);
+			tps.add(new Teleportation(x + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height));
+			tps.add(new Teleportation(x + tp_range + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height));
 		}
 		
 		// Shooting logic
@@ -340,6 +398,33 @@ public class WindowGame extends BasicGame {
 			explosions.get(i).setTimer(explosions.get(i).getTimer() + update_int);
 			if(explosions.get(i).getTimer() > explosion_frame_duration * 11)
 				explosions.remove(i);
+		}
+		
+		// TP logic
+		for(int i = 0 ; i < tps.size() ; i++) {
+			tps.get(i).setX(tps.get(i).getX() - gridSpeed);
+			tps.get(i).setTimer(tps.get(i).getTimer() + update_int);
+			if(tps.get(i).getTimer() > tp_frame_duration * 9)
+				tps.remove(i);
+		}
+		
+		// Enemy logic
+		for(int i = 0 ; i < enemies.size() ; i++) {
+			Enemy e = enemies.get(i);
+			// Incrementing last shoot
+			e.setLastShoot(e.getLastShoot() + 1);
+			
+			// Shoot
+			if(e.getLastShoot() >= e.getReloadTime()) {
+				
+			}
+			
+			// Move to the left
+			e.setX(e.getX() - gridSpeed);
+			
+			// Delete if it goes out of the map
+			if(e.getX() < 0)
+				enemies.remove(i);
 		}
 		
 		// Wall logic
@@ -416,6 +501,16 @@ public class WindowGame extends BasicGame {
 						
 					}
 				}
+				
+				// Generate enemies
+				next = rand.nextInt(enemy_rate[0]);
+				if(next == 0) {
+					int j = top_wall + 1;
+					int width = 32;
+					int height = 64;
+					enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, 0, 20));
+				}
+				
 			}
 		}
 		if(wallMoved >= mesh_width) {
@@ -438,6 +533,7 @@ public class WindowGame extends BasicGame {
 					if(col) {
 						switch(grid[i][j].getType()) {
 						case "ammo":
+							int max_ammo = level_ammo[player.getLevel() - 1];
 							if(player.getAmmo() + grid[i][j].getValue() < max_ammo) 
 								player.setAmmo(player.getAmmo() + grid[i][j].getValue());
 							else
@@ -448,6 +544,7 @@ public class WindowGame extends BasicGame {
 							grid[i][j] = null;
 							break;
 						case "life":
+							int max_life = level_life[player.getLevel() - 1];
 							if(player.getLife() + 1 <= max_life) 
 								player.setLife(player.getLife() + 1);
 							texts.add(new Text(200, height - 169, "+" + life_score, new Color(255, 255, 255), "HUD"));
@@ -515,7 +612,7 @@ public class WindowGame extends BasicGame {
 	        case Input.KEY_DOWN:	this.moving[2] = true; break;
 	        case Input.KEY_LEFT:	this.moving[3] = true; break;
 	        case Input.KEY_SPACE:	this.shoot = true; break;
-	        case Input.KEY_LSHIFT:	tp = true; break;
+	        case Input.KEY_B:	tp = true; break;
 	        case Input.KEY_D:		this.debug = !this.debug; break;
 	    }
 	}
@@ -528,7 +625,7 @@ public class WindowGame extends BasicGame {
         		case Input.KEY_DOWN:   	this.moving[2] = false; break;
         		case Input.KEY_LEFT:  	this.moving[3] = false; break;
         		case Input.KEY_SPACE:	this.shoot = false; break;
-        		case Input.KEY_LSHIFT:	tp = false; break;
+        		case Input.KEY_B:	tp = false; break;
         		case Input.KEY_ESCAPE: 	this.container.exit();
         }
     }
