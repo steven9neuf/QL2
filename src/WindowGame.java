@@ -54,6 +54,7 @@ public class WindowGame extends BasicGame {
 	// Life
 	private static int life_rate = 10000;
 	private static int max_life = 5;
+	private static int life_score = 50;
 	
 	// Ammo
 	private static int Ammo_rate = 2000;
@@ -88,6 +89,7 @@ public class WindowGame extends BasicGame {
 	private boolean[] moving = {false, false, false, false};
 	private boolean shoot = false;
 	private boolean debug = true;
+	private boolean tp = false;
 	private ArrayList<Shoot> shoots = new ArrayList<Shoot>();
 	private ArrayList<Text> texts = new ArrayList<Text>();
 	private Cell[][] grid;
@@ -312,6 +314,9 @@ public class WindowGame extends BasicGame {
 		if(this.moving[3]) {
 			player.setX(x - player.getSpeed());
 		}
+		if(tp) {
+			player.setX(x + 100);
+		}
 		
 		// Shooting logic
 		if(this.shoot && player.getLastShoot() >= player.getReloadTime() && player.getAmmo() > 0) {
@@ -445,6 +450,8 @@ public class WindowGame extends BasicGame {
 						case "life":
 							if(player.getLife() + 1 <= max_life) 
 								player.setLife(player.getLife() + 1);
+							texts.add(new Text(200, height - 169, "+" + life_score, new Color(255, 255, 255), "HUD"));
+							score += life_score;
 							grid[i][j] = null;
 							break;
 						case "wall":
@@ -505,9 +512,10 @@ public class WindowGame extends BasicGame {
 	    switch (key) {
 	        case Input.KEY_UP:     	this.moving[0] = true; break;
 	        case Input.KEY_RIGHT:  	this.moving[1] = true; break;
-	        case Input.KEY_DOWN:		this.moving[2] = true; break;
-	        case Input.KEY_LEFT:	 	this.moving[3] = true; break;
+	        case Input.KEY_DOWN:	this.moving[2] = true; break;
+	        case Input.KEY_LEFT:	this.moving[3] = true; break;
 	        case Input.KEY_SPACE:	this.shoot = true; break;
+	        case Input.KEY_LSHIFT:	tp = true; break;
 	        case Input.KEY_D:		this.debug = !this.debug; break;
 	    }
 	}
@@ -516,10 +524,11 @@ public class WindowGame extends BasicGame {
     public void keyReleased(int key, char c) {
         switch (key) {
         		case Input.KEY_UP:		this.moving[0] = false; break;
-        		case Input.KEY_RIGHT:   	this.moving[1] = false; break;
+        		case Input.KEY_RIGHT:   this.moving[1] = false; break;
         		case Input.KEY_DOWN:   	this.moving[2] = false; break;
         		case Input.KEY_LEFT:  	this.moving[3] = false; break;
         		case Input.KEY_SPACE:	this.shoot = false; break;
+        		case Input.KEY_LSHIFT:	tp = false; break;
         		case Input.KEY_ESCAPE: 	this.container.exit();
         }
     }
