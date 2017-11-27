@@ -3,12 +3,12 @@
  */
 import Modele.Player;
 import Modele.Shoot;
-import Modele.Teleportation;
+import Modele.Anime;
 import Modele.Text;
 import Modele.Background;
 import Modele.Cell;
 import Modele.Enemy;
-import Modele.Explosion;
+import Modele.Laser;
 
 import java.awt.Font;
 import java.awt.FontFormatException;
@@ -34,12 +34,14 @@ import org.apache.logging.log4j.LogManager;
  * @author steven
  *
  */
+
+
 public class WindowGame extends BasicGame {
 	// Game Parameters
 	// private static int maxFPS = 60;
 	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080
-	private static int width = 1920; 
-	private static int height = 1080;
+	private static int width = 1440; 
+	private static int height = 900;
 	private static int bg_width = 1920;
 	private static int bg_height = 1080;
 	private static boolean fullscreen = true;
@@ -111,7 +113,6 @@ public class WindowGame extends BasicGame {
 	private boolean tp = false;
 	private ArrayList<Shoot> shoots = new ArrayList<Shoot>();
 	private ArrayList<Text> texts = new ArrayList<Text>();
-	private ArrayList<Teleportation> tps = new ArrayList<Teleportation>();
 	private Cell[][] grid;
 	private int bottom_wall;
 	private int top_wall;
@@ -124,7 +125,8 @@ public class WindowGame extends BasicGame {
 	
 	private UnicodeFont HUD_font;
 	private UnicodeFont text_font;
-	private ArrayList<Explosion> explosions = new ArrayList<Explosion>();
+	private ArrayList<Anime> animes = new ArrayList<Anime>();
+	private ArrayList<Laser> lasers = new ArrayList<Laser>();
 	
 	public static void main(String[] args) throws SlickException {
 		try {
@@ -230,15 +232,6 @@ public class WindowGame extends BasicGame {
 			this.shoots.get(i).getImage().draw(x, y);
 		}
 		
-		// Drawing wall
-		for(int i = 0 ; i < grid.length ; i++) {
-			for(int j = 0 ; j < grid[0].length ; j++) {
-				if(grid[i][j] != null) {
-					grid[i][j].getImage().draw(grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
-				}
-			}
-		}
-		
 		// Drawing enemies
 		for(int i = 0 ; i < this.enemies.size() ; i++) {
 			x = this.enemies.get(i).getX();
@@ -250,17 +243,27 @@ public class WindowGame extends BasicGame {
 				default:
 					break;
 			}
-			
 		}
 		
-		// Drawing explosions
-		for(int i = 0 ; i < explosions.size() ; i++) {
-			explosions.get(i).getAnimation().draw(explosions.get(i).getX(), explosions.get(i).getY(), explosions.get(i).getWidth(), explosions.get(i).getHeight());
+		// Drawing lasers
+		for(int i = 0 ; i < lasers.size() ; i ++) {
+			Laser l = lasers.get(i);
+			l.getImage().draw(l.getX(), l.getY(), l.getWidth(), l.getHeight());
 		}
 		
-		// Drawing tps
-		for(int i = 0 ; i < tps.size() ; i++) {
-			tps.get(i).getAnimation().draw(tps.get(i).getX(), tps.get(i).getY(), tps.get(i).getWidth(), tps.get(i).getHeight());
+		// Drawing wall
+		for(int i = 0 ; i < grid.length ; i++) {
+			for(int j = 0 ; j < grid[0].length ; j++) {
+				if(grid[i][j] != null) {
+					grid[i][j].getImage().draw(grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
+				}
+			}
+		}
+		
+		// Drawing Animation
+		for(int i = 0 ; i < animes.size() ; i++) {
+			Anime a = animes.get(i);
+			a.getAnimation().draw(a.getX(), a.getY(), a.getWidth(), a.getHeight());
 		}
 		
 		// Drawing informations
@@ -372,8 +375,8 @@ public class WindowGame extends BasicGame {
 		if(tp && player.getLast_tp() >= player.getTp_reload()) {  
 			player.setX(x + tp_range);
 			player.setLast_tp(0);
-			tps.add(new Teleportation(x + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height));
-			tps.add(new Teleportation(x + tp_range + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height));
+			animes.add(new Anime(x + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
+			animes.add(new Anime(x + tp_range + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
 		}
 		
 		// Shooting logic
@@ -392,20 +395,15 @@ public class WindowGame extends BasicGame {
 			}
 		}
 		
-		// Explosion logic
-		for(int i = 0 ; i < explosions.size() ; i++) {
-			explosions.get(i).setX(explosions.get(i).getX() - gridSpeed);
-			explosions.get(i).setTimer(explosions.get(i).getTimer() + update_int);
-			if(explosions.get(i).getTimer() > explosion_frame_duration * 11)
-				explosions.remove(i);
-		}
-		
-		// TP logic
-		for(int i = 0 ; i < tps.size() ; i++) {
-			tps.get(i).setX(tps.get(i).getX() - gridSpeed);
-			tps.get(i).setTimer(tps.get(i).getTimer() + update_int);
-			if(tps.get(i).getTimer() > tp_frame_duration * 9)
-				tps.remove(i);
+		// Animation logic
+		for(int i = 0 ; i < animes.size() ; i++) {
+			Anime a = animes.get(i);
+			a.setX(a.getX() - gridSpeed);
+			a.setTimer(a.getTimer() + update_int);
+			if(a.getType() == "explosion" && a.getTimer() > explosion_frame_duration * 11)
+				animes.remove(i);
+			else if(a.getType() == "tp" && a.getTimer() > tp_frame_duration * 9)
+				animes.remove(i);
 		}
 		
 		// Enemy logic
@@ -416,7 +414,8 @@ public class WindowGame extends BasicGame {
 			
 			// Shoot
 			if(e.getLastShoot() >= e.getReloadTime()) {
-				
+				lasers.add(new Laser(e.getX() + e.getWidth() / 2, e.getY(), 3, height, 20));
+				e.setLastShoot(0);
 			}
 			
 			// Move to the left
@@ -425,6 +424,21 @@ public class WindowGame extends BasicGame {
 			// Delete if it goes out of the map
 			if(e.getX() < 0)
 				enemies.remove(i);
+		}
+		
+		// Laser logic
+		for(int i = 0 ; i < lasers.size() ; i ++) {
+			Laser l = lasers.get(i);
+			
+			// Moving to left
+			l.setX(l.getX() - gridSpeed);
+			
+			// Timer management
+			l.setTimer(l.getTimer() + 1);
+			if(l.getTimer() >= l.getDuration()) {
+				lasers.remove(i);
+			}
+			
 		}
 		
 		// Wall logic
@@ -508,7 +522,7 @@ public class WindowGame extends BasicGame {
 					int j = top_wall + 1;
 					int width = 32;
 					int height = 64;
-					enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, 0, 20));
+					enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, 0, rand.nextInt(120) + 80, rand.nextInt(80)));
 				}
 				
 			}
@@ -586,7 +600,7 @@ public class WindowGame extends BasicGame {
 	
 	// Explosion around after collision
 	public void explode(int x, int y) throws SlickException {
-		explosions.add(new Explosion(x * mesh_width - explosion_range * mesh_width, y * mesh_height - explosion_range * mesh_height, explosion_frame_duration, explosion_range * mesh_width * 2, explosion_range * mesh_height * 2));
+		animes.add(new Anime(x * mesh_width - explosion_range * mesh_width, y * mesh_height - explosion_range * mesh_height, explosion_frame_duration, explosion_range * mesh_width * 2, explosion_range * mesh_height * 2, "explosion"));
 		for(int i = x - explosion_range ; i <= x + explosion_range ; i++) {
 			for(int j = y - explosion_range ; j <= y + explosion_range ; j++) {
 				if(i >= 0 && i <= wall_max_x && j >= 0 && j <= wall_max_y && (Math.pow(i - x, 2) + Math.pow(j - y, 2)) <= Math.pow(explosion_range, 2)) {

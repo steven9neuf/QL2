@@ -14,14 +14,14 @@ public class Enemy extends Object {
 	private int type;
 	private int reloadTime;
 	private int lastShoot;
-	public Enemy(int x, int y, int width, int height, int type, int reloadTime) throws SlickException {
+	public Enemy(int x, int y, int width, int height, int type, int reloadTime, int lastShoot) throws SlickException {
 		this.x = x;
 		this.y = y;
 		this.width = width;
 		this.height = height;
 		this.type = type;
 		this.reloadTime = reloadTime;
-		this.lastShoot = 0;
+		this.lastShoot = lastShoot;
 		switch(type){
 			case 0:
 				this.image = new Image("img/enemy0.png");
