@@ -64,6 +64,7 @@ public class WindowGame extends BasicGame {
 	private static int ammo_score = 30;
 	
 	// Enemies
+	private static int laser_duration = 40;
 	private ArrayList<Enemy> enemies = new ArrayList<Enemy>(); 
 	private static int[] enemy_rate = {100};
 	
@@ -414,7 +415,7 @@ public class WindowGame extends BasicGame {
 			
 			// Shoot
 			if(e.getLastShoot() >= e.getReloadTime()) {
-				lasers.add(new Laser(e.getX() + e.getWidth() / 2, e.getY(), 3, height, 20));
+				lasers.add(new Laser(e.getX() + e.getWidth() / 2, e.getY(), 3, height, laser_duration));
 				e.setLastShoot(0);
 			}
 			
@@ -540,10 +541,11 @@ public class WindowGame extends BasicGame {
 	/*************************************************************************/
 	
 	public void checkCollision() throws SlickException {
+		// For the grid
 		for(int i = 0 ; i < grid.length ; i++) {
 			for(int j = 0 ; j < grid[0].length ; j++) {
 				if(grid[i][j] != null) {
-					boolean col = intersect(player, grid[i][j]);
+					boolean col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
 					if(col) {
 						switch(grid[i][j].getType()) {
 						case "ammo":
@@ -578,13 +580,28 @@ public class WindowGame extends BasicGame {
 				}
 			}
 		}
+		// For lasers
+		for(int i = 0 ; i < lasers.size() ; i++) {
+			Laser l = lasers.get(i);
+			boolean col = false;
+			col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), l.getX(), l.getY(), l.getWidth(), l.getHeight());
+			if(col) {
+				if(player.getLife() > 0) {
+					player.setLife(player.getLife() - 1);
+				}
+				lasers.remove(i);
+				explode(player.getX() / mesh_width, player.getY() / mesh_height);
+			}
+		}
+		
+		
 	}
 	
 	// Check if two entities collide
-	public boolean intersect(Player p, Cell c) {
+	public boolean intersect(int px, int py, int pw, int ph, int cx, int cy, int cw, int ch) {
 		boolean bool = false;
-		boolean int_X = intersect_segments(c.getX(), c.getX() + c.getWidth(), p.getX(), p.getX() + p.getWidth());
-		boolean int_Y = intersect_segments(c.getY(), c.getY() + c.getHeight(), p.getY(), p.getY() + p.getHeight());
+		boolean int_X = intersect_segments(cx, cx + cw, px, px + pw);
+		boolean int_Y = intersect_segments(cy, cy + ch, py, py + ph);
 		if(int_X && int_Y)
 			bool = true;
 		return bool;
@@ -618,6 +635,7 @@ public class WindowGame extends BasicGame {
 		
 	}
 	
+	// Pressing keys handle
 	@Override
 	public void keyPressed(int key, char c) {
 	    switch (key) {
@@ -631,6 +649,7 @@ public class WindowGame extends BasicGame {
 	    }
 	}
 	
+	// Release key handle
 	@Override
     public void keyReleased(int key, char c) {
         switch (key) {
