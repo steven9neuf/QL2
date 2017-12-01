@@ -66,16 +66,26 @@ public class WindowGame extends BasicGame {
 	// Enemies
 	private static int laser_duration = 40;
 	private ArrayList<Enemy> enemies = new ArrayList<Enemy>(); 
-	private static int[] enemy_rate = {100};
+	private static int[] enemy_rate = {100, 40};
+	private static int[][] enemy_reload = {
+			{80, 200}, // enemy 0 
+			{60, 140} // enemy 1
+			};
 	
 	// Explosion
 	private static int explosion_range = 7;
 	private static int explosion_frame_duration = 70;
+	private static int shoot_explosion_range = 3;
 	
 	// TP
 	private static int tp_frame_duration = 60;
 	private static int tp_width = 50;
 	private static int tp_height = 50;
+	
+	// Levelup
+	private static int LU_frame_duration = 70;
+	private static int LU_width = 120;
+	private static int LU_height = 120;
 	
 	// Score
 	private int score = 0;
@@ -90,16 +100,20 @@ public class WindowGame extends BasicGame {
 	private static final Logger logger = LogManager.getLogger("storm");
 	
 	// Player
+	private static int max_level = 2;
 	private static int tp_range = 300;
 	private static int[] level_life = {3, 4};
-	private static int[] level_ammo = {32, 36};
+	private static int[] level_damage = {1, 2};
+	private static int max_ammo = 500;
+	private static int[] player_exp = {1000, 2000};
 	
 	// Info_bar
-	private static int info_height = 2;
+	private static int info_height = 3;
 	
 	// Stage
 	private int stage = 1;
 	
+	private boolean initialization = true;
 	
 	private Image life;
 	private Image bullet;
@@ -215,6 +229,17 @@ public class WindowGame extends BasicGame {
 	 */
 	@Override
 	public void render(GameContainer gc, Graphics g) throws SlickException {
+		if(initialization) {
+			// Pre load animations
+			Anime a = new Anime(-5, -5, 1, 1, 1, "explosion");
+			g.drawAnimation(a.getAnimation(), -5, -5);
+			a = new Anime(-5, -5, 1, 1, 1, "tp");
+			g.drawAnimation(a.getAnimation(), -5, -5);
+			a = new Anime(-5, -5, 1, 1, 1, "LU");
+			g.drawAnimation(a.getAnimation(), -5, -5);
+			initialization = false;
+		}
+		
 		// Drawing background
 		for(int i = 0 ; i < this.bgs.size(); i++) {
 			Background bg = this.bgs.get(i);
@@ -235,15 +260,11 @@ public class WindowGame extends BasicGame {
 		
 		// Drawing enemies
 		for(int i = 0 ; i < this.enemies.size() ; i++) {
-			x = this.enemies.get(i).getX();
-			y = this.enemies.get(i).getY();
-			switch(enemies.get(i).getType()) {
-				case 0:
-					this.enemies.get(i).getImage().draw(x, y, enemies.get(i).getWidth(), enemies.get(i).getHeight(), new Color(255, 255, 255));
-					break;
-				default:
-					break;
-			}
+			Enemy e = enemies.get(i);
+			x = e.getX();
+			y = e.getY();
+			e.getImage().draw(x, y, e.getWidth(), e.getHeight());
+			e.getInfo_bar().draw(x, y + e.getHeight(), e.getWidth() * e.getLife() / e.getMaxLife(), info_height, new Color(244, 67, 54));	
 		}
 		
 		// Drawing lasers
@@ -294,13 +315,14 @@ public class WindowGame extends BasicGame {
 		life.draw(20, 115, 32, 32);
 		HUD_font.drawString(60, 120, ": " + level_life[player.getLevel() - 1]);
 		bullet.draw(20, 165, 32, 32);
-		HUD_font.drawString(60, 170, ": " + level_ammo[player.getLevel() - 1]);
+		HUD_font.drawString(60, 170, ": " + level_damage[player.getLevel() - 1]);
 		
 		// Info_bar
 		if(player.getLast_tp() < player.getTp_reload())
 			player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth() * player.getLast_tp() / player.getTp_reload(), info_height, new Color(0, 191, 255));
 		else
 			player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth(), info_height, new Color(0, 255, 191));
+		player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight() + info_height, player.getWidth() * player.getExp() / player_exp[player.getLevel() - 1], info_height, new Color(250, 250, 250));
 		
 		// Score
 		HUD_font.drawString(20, height - 126, "Score : " + score);
@@ -325,11 +347,20 @@ public class WindowGame extends BasicGame {
 	 */
 	@Override
 	public void update(GameContainer arg0, int arg1) throws SlickException {	
+
 		// Score logic
 		score_count ++;
 		if(score_count >= score_reduction) {
 			score ++;
 			score_count = 0;
+		}
+		
+		// Level logic
+		if(player.getExp() > player_exp[player.getLevel() - 1]) {
+			player.setExp(0);
+			if(player.getLevel() + 1 <= max_level)
+				player.setLevel(player.getLevel() + 1);
+			animes.add(new Anime(player.getX() + player.getWidth() / 2 - LU_width / 2, player.getY() + player.getHeight() / 2 - LU_height / 2, LU_frame_duration, LU_width, LU_height, "LU"));
 		}
 		
 		// Text logic
@@ -383,14 +414,28 @@ public class WindowGame extends BasicGame {
 		// Shooting logic
 		if(this.shoot && player.getLastShoot() >= player.getReloadTime() && player.getAmmo() > 0) {
 			logger.info("Player shot");
-			this.shoots.add(new Shoot(x, y));
+			switch(player.getLevel()) {
+				case 1:
+					this.shoots.add(new Shoot(x, y, "ally"));
+					break;
+				case 2:
+					this.shoots.add(new Shoot(x, y, "ally"));
+					this.shoots.add(new Shoot(x, y + 10, "ally"));
+					break;
+				default:
+					this.shoots.add(new Shoot(x, y, "ally"));
+					break;
+			}
 			player.setLastShoot(0);
 			player.setAmmo(player.getAmmo() - 1);
 		}
 		player.setLastShoot(player.getLastShoot() + 1);
 		for(int i = 0 ; i < this.shoots.size() ; i++) {
 			Shoot s = this.shoots.get(i);
-			this.shoots.get(i).setX(s.getX() + s.getSpeed());
+			if(s.getType() == "ally")
+				s.setX(s.getX() + s.getSpeed());
+			else
+				s.setX(s.getX() - s.getSpeed());
 			if(s.getX() > width) {
 				this.shoots.remove(i);
 			}
@@ -405,17 +450,37 @@ public class WindowGame extends BasicGame {
 				animes.remove(i);
 			else if(a.getType() == "tp" && a.getTimer() > tp_frame_duration * 9)
 				animes.remove(i);
+			else if(a.getType() == "LU" && a.getTimer() > LU_frame_duration * 21)
+				animes.remove(i);
 		}
 		
 		// Enemy logic
 		for(int i = 0 ; i < enemies.size() ; i++) {
 			Enemy e = enemies.get(i);
+			
+			// If enemy dies
+			if(e.getLife() <= 0) {
+				texts.add(new Text(200, height - 169, "+" + e.getScore(), new Color(255, 255, 255), "HUD"));
+				score += e.getScore();
+				player.setExp(player.getExp() + e.getScore());
+				enemies.remove(i);
+			}
+			
 			// Incrementing last shoot
 			e.setLastShoot(e.getLastShoot() + 1);
 			
 			// Shoot
 			if(e.getLastShoot() >= e.getReloadTime()) {
-				lasers.add(new Laser(e.getX() + e.getWidth() / 2, e.getY(), 3, height, laser_duration));
+				switch(e.getType()) {
+					case 0:
+						lasers.add(new Laser(e.getX() + e.getWidth() / 2, e.getY(), 3, height, laser_duration));
+						break;
+					case 1:
+						shoots.add(new Shoot(e.getX(), e.getY(), "enemy"));
+						break;
+					default:
+						break;
+				}
 				e.setLastShoot(0);
 			}
 			
@@ -516,16 +581,34 @@ public class WindowGame extends BasicGame {
 						
 					}
 				}
+				int j;
+				int width;
+				int height;
 				
 				// Generate enemies
-				next = rand.nextInt(enemy_rate[0]);
-				if(next == 0) {
-					int j = top_wall + 1;
-					int width = 32;
-					int height = 64;
-					enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, 0, rand.nextInt(120) + 80, rand.nextInt(80)));
-				}
-				
+				for(int n = 0 ; n <= 1 ; n++) {
+					next = rand.nextInt(enemy_rate[n]);
+					if(next == 0) {
+						switch(n) {
+							case 0:
+								j = top_wall + 1;
+								width = 32;
+								height = 64;
+								break;
+							case 1:
+								j = rand.nextInt(bottom_wall - top_wall - 2) + top_wall + 1;
+								width = 40;
+								height = 17;
+								break;
+							default:
+								j = 0;
+								width = 0;
+								height = 0;
+								break;
+						}
+						enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, n, rand.nextInt(enemy_reload[n][1] - enemy_reload[n][0]) + enemy_reload[n][0], rand.nextInt(enemy_reload[n][0])));
+					}
+				}			
 			}
 		}
 		if(wallMoved >= mesh_width) {
@@ -541,6 +624,13 @@ public class WindowGame extends BasicGame {
 	/*************************************************************************/
 	
 	public void checkCollision() throws SlickException {
+		// Player collision
+		checkPlayerCollision();
+		// Player shoot collision
+		checkPlayerShootCollision();	
+	}
+	
+	public void checkPlayerCollision() throws SlickException {
 		// For the grid
 		for(int i = 0 ; i < grid.length ; i++) {
 			for(int j = 0 ; j < grid[0].length ; j++) {
@@ -549,7 +639,6 @@ public class WindowGame extends BasicGame {
 					if(col) {
 						switch(grid[i][j].getType()) {
 						case "ammo":
-							int max_ammo = level_ammo[player.getLevel() - 1];
 							if(player.getAmmo() + grid[i][j].getValue() < max_ammo) 
 								player.setAmmo(player.getAmmo() + grid[i][j].getValue());
 							else
@@ -571,7 +660,7 @@ public class WindowGame extends BasicGame {
 							if(player.getLife() > 0) {
 								player.setLife(player.getLife() - 1);
 							}
-							explode(i, j);
+							explode(i, j, explosion_range);
 							break;
 						default:
 							break;
@@ -590,11 +679,50 @@ public class WindowGame extends BasicGame {
 					player.setLife(player.getLife() - 1);
 				}
 				lasers.remove(i);
-				explode(player.getX() / mesh_width, player.getY() / mesh_height);
+				explode(player.getX() / mesh_width, player.getY() / mesh_height, explosion_range);
 			}
 		}
-		
-		
+	}
+	
+	public void checkPlayerShootCollision() throws SlickException {
+		for(int k = 0 ; k < shoots.size() ; k ++) {
+			Shoot s = shoots.get(k);
+			if(s.getType() == "ally") {
+				boolean removed = false;
+				// For the grid
+				for(int i = 0 ; i < grid.length ; i++) {
+					for(int j = 0 ; j < grid[0].length ; j++) {
+						if(grid[i][j] != null) {
+							boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
+							if(col && removed == false) {
+								switch(grid[i][j].getType()) {
+								case "wall":
+									explode(s.getX() / mesh_width, s.getY() / mesh_height, shoot_explosion_range);
+									break;
+								default:
+									break;
+								}
+								shoots.remove(k);
+								removed = true;
+							}
+						}
+					}
+				}
+				
+				// For enemies
+				if(removed == false) {
+					for(int n = 0 ; n < enemies.size() ; n++) {
+						Enemy e = enemies.get(n);
+						boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), e.getX(), e.getY(), e.getWidth(), e.getHeight());
+						if(col && removed == false) {
+							e.setLife(e.getLife() - player.getDamage());
+							shoots.remove(k);
+							removed = true;
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	// Check if two entities collide
@@ -616,17 +744,18 @@ public class WindowGame extends BasicGame {
 	}
 	
 	// Explosion around after collision
-	public void explode(int x, int y) throws SlickException {
-		animes.add(new Anime(x * mesh_width - explosion_range * mesh_width, y * mesh_height - explosion_range * mesh_height, explosion_frame_duration, explosion_range * mesh_width * 2, explosion_range * mesh_height * 2, "explosion"));
-		for(int i = x - explosion_range ; i <= x + explosion_range ; i++) {
-			for(int j = y - explosion_range ; j <= y + explosion_range ; j++) {
-				if(i >= 0 && i <= wall_max_x && j >= 0 && j <= wall_max_y && (Math.pow(i - x, 2) + Math.pow(j - y, 2)) <= Math.pow(explosion_range, 2)) {
+	public void explode(int x, int y, int range) throws SlickException {
+		animes.add(new Anime(x * mesh_width - range * mesh_width, y * mesh_height - range * mesh_height, explosion_frame_duration, range * mesh_width * 2, range * mesh_height * 2, "explosion"));
+		for(int i = x - range ; i <= x + range ; i++) {
+			for(int j = y - range ; j <= y + range ; j++) {
+				if(i >= 0 && i <= wall_max_x && j >= 0 && j <= wall_max_y && (Math.pow(i - x, 2) + Math.pow(j - y, 2)) <= Math.pow(range, 2)) {
 					grid[i][j] = null;
 				}
 			}
 		}
-		for(int i = x - explosion_range - 1 ; i <= x + explosion_range + 1 ; i++) {
-			for(int j = y - explosion_range - 1 ; j <= y + explosion_range + 1 ; j++) {
+		// Check the wall sprites to update it if necessary
+		for(int i = x - range - 1 ; i <= x + range + 1 ; i++) {
+			for(int j = y - range - 1 ; j <= y + range + 1 ; j++) {
 				if(i > 0 && i <= grid.length - 2 && j >= 0 && j < grid[0].length && grid[i][j] != null) {
 					checkSprite(grid[i][j], i, j);
 				}

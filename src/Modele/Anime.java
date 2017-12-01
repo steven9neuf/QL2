@@ -37,15 +37,38 @@ public class Anime extends Object {
 				this.animation.addFrame(new Image("img/explo10.bmp", filter), frame_duration);
 				break;
 			case "tp":
-				this.animation.addFrame(new Image("img/tp1.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp2.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp3.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp4.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp5.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp6.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp7.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp8.gif", filter), frame_duration);
-				this.animation.addFrame(new Image("img/tp9.gif", filter), frame_duration);
+				this.animation.addFrame(new Image("img/tp1.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp2.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp3.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp4.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp5.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp6.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp7.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp8.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/tp9.gif"), frame_duration);
+				break;
+			case "LU":
+				this.animation.addFrame(new Image("img/levelup/frame-01.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-02.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-03.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-04.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-05.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-06.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-07.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-08.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-09.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-10.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-11.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-12.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-13.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-14.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-15.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-16.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-17.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-18.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-19.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-20.gif"), frame_duration);
+				this.animation.addFrame(new Image("img/levelup/frame-21.gif"), frame_duration);
 				break;
 			default:
 				break;

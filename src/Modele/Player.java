@@ -21,6 +21,7 @@ public class Player extends Object {
 	private Image info_bar;
 	private int exp;
 	private int level;
+	private int damage;
 	
 	public Player(int x, int y) throws SlickException {
 		this.x = x;
@@ -36,6 +37,7 @@ public class Player extends Object {
 		this.last_tp = 300;
 		this.exp = 0;
 		this.level = 1;
+		this.damage = 1;
 		this.animation = new Animation();
 		this.animation.addFrame(new Image("img/player_frame1.bmp", filter), 100);
 		this.animation.addFrame(new Image("img/player_frame2.bmp", filter), 100);
@@ -166,5 +168,19 @@ public class Player extends Object {
 	 */
 	public void setLevel(int level) {
 		this.level = level;
+	}
+
+	/**
+	 * @return the damage
+	 */
+	public int getDamage() {
+		return damage;
+	}
+
+	/**
+	 * @param damage the damage to set
+	 */
+	public void setDamage(int damage) {
+		this.damage = damage;
 	}	
 }

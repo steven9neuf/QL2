@@ -14,6 +14,10 @@ public class Enemy extends Object {
 	private int type;
 	private int reloadTime;
 	private int lastShoot;
+	private int life;
+	private int maxLife;
+	private Image info_bar;
+	private int score;
 	public Enemy(int x, int y, int width, int height, int type, int reloadTime, int lastShoot) throws SlickException {
 		this.x = x;
 		this.y = y;
@@ -22,9 +26,19 @@ public class Enemy extends Object {
 		this.type = type;
 		this.reloadTime = reloadTime;
 		this.lastShoot = lastShoot;
+		this.info_bar = new Image("img/info_bar.png");
 		switch(type){
 			case 0:
 				this.image = new Image("img/enemy0.png");
+				this.life = 2;
+				this.maxLife = 2;
+				this.score = 200;
+				break;
+			case 1:
+				this.image = new Image("img/enemy1.bmp", this.filter);
+				this.life = 3;
+				this.maxLife = 3;
+				this.score = 300;
 				break;
 			default:
 				break;
@@ -67,5 +81,61 @@ public class Enemy extends Object {
 	 */
 	public void setLastShoot(int lastShoot) {
 		this.lastShoot = lastShoot;
+	}
+
+	/**
+	 * @return the life
+	 */
+	public int getLife() {
+		return life;
+	}
+
+	/**
+	 * @param life the life to set
+	 */
+	public void setLife(int life) {
+		this.life = life;
+	}
+
+	/**
+	 * @return the score
+	 */
+	public int getScore() {
+		return score;
+	}
+
+	/**
+	 * @param score the score to set
+	 */
+	public void setScore(int score) {
+		this.score = score;
+	}
+
+	/**
+	 * @return the info_bar
+	 */
+	public Image getInfo_bar() {
+		return info_bar;
+	}
+
+	/**
+	 * @param info_bar the info_bar to set
+	 */
+	public void setInfo_bar(Image info_bar) {
+		this.info_bar = info_bar;
+	}
+
+	/**
+	 * @return the maxLife
+	 */
+	public int getMaxLife() {
+		return maxLife;
+	}
+
+	/**
+	 * @param maxLife the maxLife to set
+	 */
+	public void setMaxLife(int maxLife) {
+		this.maxLife = maxLife;
 	}
 }
