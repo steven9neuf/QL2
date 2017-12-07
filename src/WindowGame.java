@@ -13,9 +13,15 @@ import Modele.Laser;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 import org.newdawn.slick.AppGameContainer;
 import org.newdawn.slick.BasicGame;
@@ -40,8 +46,8 @@ public class WindowGame extends BasicGame {
 	// Game Parameters
 	// private static int maxFPS = 60;
 	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080
-	private static int width = 1440; 
-	private static int height = 900;
+	private static int width = 1920; 
+	private static int height = 1080;
 	private static int bg_width = 1920;
 	private static int bg_height = 1080;
 	private static boolean fullscreen = true;
@@ -55,22 +61,31 @@ public class WindowGame extends BasicGame {
 	// update refreshing freq
 	private static int update_int = 20;
 	
+	// File 
+	private Scanner sc = null;
+	private Writer wr = null;
+	private String endingMsg = null;
+	
 	// Life
-	private static int life_rate = 10000;
+	private static int life_rate = 5000;
 	private static int life_score = 50;
 	
 	// Ammo
-	private static int Ammo_rate = 2000;
+	private static int Ammo_rate = 1500;
 	private static int ammo_score = 30;
 	
 	// Enemies
 	private static int laser_duration = 40;
 	private ArrayList<Enemy> enemies = new ArrayList<Enemy>(); 
-	private static int[] enemy_rate = {100, 40};
+	private static int minimum_enemy_rate = 10;
+	private static int enemy0_rate = 100;
+	private static int enemy1_rate = 50;
+	private int[] enemy_rate = {enemy0_rate, enemy1_rate};
 	private static int[][] enemy_reload = {
 			{80, 200}, // enemy 0 
-			{60, 140} // enemy 1
+			{80, 180} // enemy 1
 			};
+	private int[] enemy_life = {2, 3};
 	
 	// Explosion
 	private static int explosion_range = 7;
@@ -91,6 +106,7 @@ public class WindowGame extends BasicGame {
 	private int score = 0;
 	private int score_count = 0;
 	private static int score_reduction = 50;
+	private int highscore = 0;
 	
 	// Text
 	private int text_duration = 50;
@@ -100,12 +116,12 @@ public class WindowGame extends BasicGame {
 	private static final Logger logger = LogManager.getLogger("storm");
 	
 	// Player
-	private static int max_level = 2;
+	private static int max_level = 5;
 	private static int tp_range = 300;
-	private static int[] level_life = {3, 4};
-	private static int[] level_damage = {1, 2};
+	private static int[] level_life = {3, 4, 5, 7, 10};
+	private static int[] level_damage = {1, 2, 3, 5, 10};
 	private static int max_ammo = 500;
-	private static int[] player_exp = {1000, 2000};
+	private static int[] player_exp = {1000, 1500, 2000, 2500, 5000};
 	
 	// Info_bar
 	private static int info_height = 3;
@@ -219,6 +235,27 @@ public class WindowGame extends BasicGame {
 		// Top wall initialization
 		top_wall = 0;
 		grid[grid.length - 1][0] = new Cell(mesh_width * (grid.length - 1), 0, "wall", mesh_width, mesh_height);
+		
+		// Getting highscore
+		
+		try {
+			sc = new Scanner(new File("./data/highscore.txt"));
+			while (sc.hasNextInt()) {
+				highscore = sc.nextInt();
+			}
+		} 
+		catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		finally {
+			if (sc != null) {
+				sc.close();
+			}
+		}
 	}
 	
 	/*************************************************************************/
@@ -239,6 +276,9 @@ public class WindowGame extends BasicGame {
 			g.drawAnimation(a.getAnimation(), -5, -5);
 			initialization = false;
 		}
+		
+		
+			
 		
 		// Drawing background
 		for(int i = 0 ; i < this.bgs.size(); i++) {
@@ -325,7 +365,10 @@ public class WindowGame extends BasicGame {
 		player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight() + info_height, player.getWidth() * player.getExp() / player_exp[player.getLevel() - 1], info_height, new Color(250, 250, 250));
 		
 		// Score
-		HUD_font.drawString(20, height - 126, "Score : " + score);
+		HUD_font.drawString(20, height - 169, "Score : " + score);
+		
+		// HighScore
+		HUD_font.drawString(20, height - 126, "Highscore : " + highscore);
 		
 		// Bullets
 		bullet.draw(20, height - 90, 32, 32);
@@ -335,6 +378,10 @@ public class WindowGame extends BasicGame {
 		HUD_font.drawString(20, height - 40, "Life :");
 		for(int i = 0 ; i < player.getLife() ; i++) {
 			life.draw(170 + 42 * i, height - 45, 32, 32);
+		}
+		
+		if(endingMsg != null) {
+			HUD_font.drawString(width / 2 - 50, height / 2 - 50, endingMsg);
 		}
 	}
 
@@ -347,281 +394,343 @@ public class WindowGame extends BasicGame {
 	 */
 	@Override
 	public void update(GameContainer arg0, int arg1) throws SlickException {	
-
-		// Score logic
-		score_count ++;
-		if(score_count >= score_reduction) {
-			score ++;
-			score_count = 0;
-		}
 		
-		// Level logic
-		if(player.getExp() > player_exp[player.getLevel() - 1]) {
-			player.setExp(0);
-			if(player.getLevel() + 1 <= max_level)
-				player.setLevel(player.getLevel() + 1);
-			animes.add(new Anime(player.getX() + player.getWidth() / 2 - LU_width / 2, player.getY() + player.getHeight() / 2 - LU_height / 2, LU_frame_duration, LU_width, LU_height, "LU"));
-		}
-		
-		// Text logic
-		for(int i = 0 ; i < texts.size() ; i++) {
-			texts.get(i).setTimer(texts.get(i).getTimer() + 1);
-			texts.get(i).setY(texts.get(i).getY() - (int)Math.round(Math.pow(texts.get(i).getTimer(), 2) / Math.pow(text_duration, 2) * text_delta));
-			if(texts.get(i).getTimer() >= text_duration) {
-				texts.remove(i);
+		// Life logic
+		if(player.getLife() == 0) {
+			try {
+				gameEnding();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
-		
-		// Background logic
-		for(int i = 0 ; i < this.bgs.size() ; i++) {
-			Background bg = this.bgs.get(i);
-			this.bgs.get(i).setX(bg.getX() - bg.getSpeed());
-			if(bg.getX() + bg_width < 0) {
-				this.bgs.remove(i);
+		else
+		{
+			// Score logic
+			score_count ++;
+			if(score_count >= score_reduction) {
+				score ++;
+				score_count = 0;
 			}
-			if(i == this.bgs.size() - 1) {
-				if(bg.getX() + bg_width <= width) {
-					Background newBg = new Background(width, 0);
-					bgs.add(newBg);
+			
+			// Level logic
+			if(player.getExp() > player_exp[player.getLevel() - 1]) {
+				player.setExp(0);
+				if(player.getLevel() + 1 <= max_level) {
+					logger.info("Player level up from " + player.getLevel() + " to " + (player.getLevel() + 1));
+					player.setLevel(player.getLevel() + 1);
+					upgrade_enemies();
+				}
+				animes.add(new Anime(player.getX() + player.getWidth() / 2 - LU_width / 2, player.getY() + player.getHeight() / 2 - LU_height / 2, LU_frame_duration, LU_width, LU_height, "LU"));
+			}
+			
+			// Text logic
+			for(int i = 0 ; i < texts.size() ; i++) {
+				texts.get(i).setTimer(texts.get(i).getTimer() + 1);
+				texts.get(i).setY(texts.get(i).getY() - (int)Math.round(Math.pow(texts.get(i).getTimer(), 2) / Math.pow(text_duration, 2) * text_delta));
+				if(texts.get(i).getTimer() >= text_duration) {
+					texts.remove(i);
 				}
 			}
-		}
-		
-		// Moving logic
-		if(player.getLast_tp() + 1 <= player.getTp_reload())
-			player.setLast_tp(player.getLast_tp() + 1);
-		int x = player.getX();
-		int y = player.getY();
-		if(this.moving[0]) {
-			player.setY(y - player.getSpeed());
-		}
-		if(this.moving[1]) {
-			player.setX(x + player.getSpeed());
-		}
-		if(this.moving[2]) {
-			player.setY(y + player.getSpeed());
-		}
-		if(this.moving[3]) {
-			player.setX(x - player.getSpeed());
-		}
-		if(tp && player.getLast_tp() >= player.getTp_reload()) {  
-			player.setX(x + tp_range);
-			player.setLast_tp(0);
-			animes.add(new Anime(x + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
-			animes.add(new Anime(x + tp_range + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
-		}
-		
-		// Shooting logic
-		if(this.shoot && player.getLastShoot() >= player.getReloadTime() && player.getAmmo() > 0) {
-			logger.info("Player shot");
-			switch(player.getLevel()) {
-				case 1:
-					this.shoots.add(new Shoot(x, y, "ally"));
-					break;
-				case 2:
-					this.shoots.add(new Shoot(x, y, "ally"));
-					this.shoots.add(new Shoot(x, y + 10, "ally"));
-					break;
-				default:
-					this.shoots.add(new Shoot(x, y, "ally"));
-					break;
-			}
-			player.setLastShoot(0);
-			player.setAmmo(player.getAmmo() - 1);
-		}
-		player.setLastShoot(player.getLastShoot() + 1);
-		for(int i = 0 ; i < this.shoots.size() ; i++) {
-			Shoot s = this.shoots.get(i);
-			if(s.getType() == "ally")
-				s.setX(s.getX() + s.getSpeed());
-			else
-				s.setX(s.getX() - s.getSpeed());
-			if(s.getX() > width) {
-				this.shoots.remove(i);
-			}
-		}
-		
-		// Animation logic
-		for(int i = 0 ; i < animes.size() ; i++) {
-			Anime a = animes.get(i);
-			a.setX(a.getX() - gridSpeed);
-			a.setTimer(a.getTimer() + update_int);
-			if(a.getType() == "explosion" && a.getTimer() > explosion_frame_duration * 11)
-				animes.remove(i);
-			else if(a.getType() == "tp" && a.getTimer() > tp_frame_duration * 9)
-				animes.remove(i);
-			else if(a.getType() == "LU" && a.getTimer() > LU_frame_duration * 21)
-				animes.remove(i);
-		}
-		
-		// Enemy logic
-		for(int i = 0 ; i < enemies.size() ; i++) {
-			Enemy e = enemies.get(i);
 			
-			// If enemy dies
-			if(e.getLife() <= 0) {
-				texts.add(new Text(200, height - 169, "+" + e.getScore(), new Color(255, 255, 255), "HUD"));
-				score += e.getScore();
-				player.setExp(player.getExp() + e.getScore());
-				enemies.remove(i);
+			// Background logic
+			for(int i = 0 ; i < this.bgs.size() ; i++) {
+				Background bg = this.bgs.get(i);
+				this.bgs.get(i).setX(bg.getX() - bg.getSpeed());
+				if(bg.getX() + bg_width < 0) {
+					this.bgs.remove(i);
+				}
+				if(i == this.bgs.size() - 1) {
+					if(bg.getX() + bg_width <= width) {
+						Background newBg = new Background(width, 0);
+						bgs.add(newBg);
+					}
+				}
 			}
 			
-			// Incrementing last shoot
-			e.setLastShoot(e.getLastShoot() + 1);
+			// Moving logic
+			if(player.getLast_tp() + 1 <= player.getTp_reload())
+				player.setLast_tp(player.getLast_tp() + 1);
+			int x = player.getX();
+			int y = player.getY();
+			if(this.moving[0]) {
+				player.setY(y - player.getSpeed());
+			}
+			if(this.moving[1]) {
+				player.setX(x + player.getSpeed());
+			}
+			if(this.moving[2]) {
+				player.setY(y + player.getSpeed());
+			}
+			if(this.moving[3]) {
+				player.setX(x - player.getSpeed());
+			}
+			if(tp && player.getLast_tp() >= player.getTp_reload()) {  
+				player.setX(x + tp_range);
+				player.setLast_tp(0);
+				animes.add(new Anime(x + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
+				animes.add(new Anime(x + tp_range + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
+			}
 			
-			// Shoot
-			if(e.getLastShoot() >= e.getReloadTime()) {
-				switch(e.getType()) {
-					case 0:
-						lasers.add(new Laser(e.getX() + e.getWidth() / 2, e.getY(), 3, height, laser_duration));
-						break;
+			// Shooting logic
+			if(this.shoot && player.getLastShoot() >= player.getReloadTime() && player.getAmmo() > 0) {
+				logger.info("Player shot");
+				switch(player.getLevel()) {
 					case 1:
-						shoots.add(new Shoot(e.getX(), e.getY(), "enemy"));
+						this.shoots.add(new Shoot(x, y, "ally"));
+						break;
+					case 2:
+						this.shoots.add(new Shoot(x, y, "ally"));
+						this.shoots.add(new Shoot(x, y + 10, "ally"));
+						break;
+					case 3:
+					case 4:
+					case 5:
+						this.shoots.add(new Shoot(x, y, "ally"));
+						this.shoots.add(new Shoot(x, y + 10, "ally"));
+						this.shoots.add(new Shoot(x, y - 10, "ally"));
 						break;
 					default:
+						this.shoots.add(new Shoot(x, y, "ally"));
 						break;
 				}
-				e.setLastShoot(0);
+				player.setLastShoot(0);
+				player.setAmmo(player.getAmmo() - 1);
+			}
+			player.setLastShoot(player.getLastShoot() + 1);
+			for(int i = 0 ; i < this.shoots.size() ; i++) {
+				Shoot s = this.shoots.get(i);
+				if(s.getType() == "ally")
+					s.setX(s.getX() + s.getSpeed());
+				else
+					s.setX(s.getX() - s.getSpeed());
+				if(s.getX() > width || s.getX() < 0) {
+					this.shoots.remove(i);
+				}
 			}
 			
-			// Move to the left
-			e.setX(e.getX() - gridSpeed);
-			
-			// Delete if it goes out of the map
-			if(e.getX() < 0)
-				enemies.remove(i);
-		}
-		
-		// Laser logic
-		for(int i = 0 ; i < lasers.size() ; i ++) {
-			Laser l = lasers.get(i);
-			
-			// Moving to left
-			l.setX(l.getX() - gridSpeed);
-			
-			// Timer management
-			l.setTimer(l.getTimer() + 1);
-			if(l.getTimer() >= l.getDuration()) {
-				lasers.remove(i);
+			// Animation logic
+			for(int i = 0 ; i < animes.size() ; i++) {
+				Anime a = animes.get(i);
+				a.setX(a.getX() - gridSpeed);
+				a.setTimer(a.getTimer() + update_int);
+				if(a.getType() == "explosion" && a.getTimer() > explosion_frame_duration * 11)
+					animes.remove(i);
+				else if(a.getType() == "tp" && a.getTimer() > tp_frame_duration * 9)
+					animes.remove(i);
+				else if(a.getType() == "LU" && a.getTimer() > LU_frame_duration * 21)
+					animes.remove(i);
 			}
 			
-		}
-		
-		// Wall logic
-		wallMoved += gridSpeed;
-		boolean moved = false;
-		for(int i = 0 ; i < grid.length ; i++) {
-			for(int j = 0 ; j < grid[0].length ; j++) {
+			// Enemy logic
+			for(int i = 0 ; i < enemies.size() ; i++) {
+				Enemy e = enemies.get(i);
 				
-				// Check if wall exists
-				if(grid[i][j] != null) {
-					// Updating grid sprites
-					// -1 is last column 
-					// -2 is before last but last column is not generated yet (below)
-					// So we check at the -3 column
-					if(i == grid.length - 3 && wallMoved == gridSpeed) {
-						checkSprite(grid[i][j], i, j);
+				// If enemy dies
+				if(e.getLife() <= 0) {
+					texts.add(new Text(200, height - 213, "+" + e.getScore(), new Color(255, 255, 255), "HUD"));
+					score += e.getScore();
+					player.setExp(player.getExp() + e.getScore());
+					enemies.remove(i);
+				}
+				
+				// Incrementing last shoot
+				e.setLastShoot(e.getLastShoot() + 1);
+				
+				// Shoot
+				if(e.getLastShoot() >= e.getReloadTime()) {
+					switch(e.getType()) {
+						case 0:
+							lasers.add(new Laser(e.getX() + e.getWidth() / 2, e.getY(), 3, height, laser_duration));
+							break;
+						case 1:
+							shoots.add(new Shoot(e.getX(), e.getY(), "enemy"));
+							break;
+						default:
+							break;
 					}
-					
-					// Scrolling wall to the left
-					grid[i][j].setX(grid[i][j].getX() - gridSpeed);
-					if(wallMoved >= mesh_width) {
-						moved = true;
-						if(i > 0) {
-							grid[i - 1][j] = grid[i][j];
-						}
-						grid[i][j] = null;
-					}
+					e.setLastShoot(0);
 				}
+				
+				// Move to the left
+				e.setX(e.getX() - gridSpeed);
+				
+				// Delete if it goes out of the map
+				if(e.getX() < 0)
+					enemies.remove(i);
 			}
-			// Generate new objects
-			if(i == grid.length - 1 && moved) {
-				// Generate new grid
-				
-				// For bottom wall
-				int next = rand.nextInt(2 * max_wall_delta + 1) - max_wall_delta;
-				if(bottom_wall + next < top_wall + minimum_wall_space || bottom_wall + next > wall_max_y) {
-					next = 0;
-				}
-				bottom_wall += next;
-				grid[i][bottom_wall] = new Cell(i * mesh_width, bottom_wall * mesh_height, "wall", mesh_width, mesh_height);
-				
-				// Fill all the grid under bottom wall
-				for(int j = bottom_wall + 1 ; j < grid[0].length ; j++) {
-					grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "wall", mesh_width, mesh_height);
-				}
-				
-				
-				// For top wall
-				next = rand.nextInt(2* max_wall_delta + 1) - max_wall_delta;
-				if(top_wall + next < 0 || top_wall + next > bottom_wall - minimum_wall_space) {
-					next = 0;
-				}
-				top_wall += next;
-				grid[i][top_wall] = new Cell(i * mesh_width, top_wall * mesh_height, "wall", mesh_width, mesh_height);
-				
-				// Fill all the grid over top wall
-				for(int j = top_wall - 1 ; j >= 0 ; j--) {
-					grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "wall", mesh_width, mesh_height);
-				}
 			
-				// Generate Ammo and life
+			// Laser logic
+			for(int i = 0 ; i < lasers.size() ; i ++) {
+				Laser l = lasers.get(i);
+				
+				// Moving to left
+				l.setX(l.getX() - gridSpeed);
+				
+				// Timer management
+				l.setTimer(l.getTimer() + 1);
+				if(l.getTimer() >= l.getDuration()) {
+					lasers.remove(i);
+				}
+				
+			}
+			
+			// Wall logic
+			wallMoved += gridSpeed;
+			boolean moved = false;
+			for(int i = 0 ; i < grid.length ; i++) {
 				for(int j = 0 ; j < grid[0].length ; j++) {
-					if(grid[i][j] == null) {
-						next = rand.nextInt(Ammo_rate);
-						if(next == 0) {
-							grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "ammo", rand.nextInt(6) + 5);
-						}
-						else{
-							next = rand.nextInt(life_rate);
-							if(next == 0) {
-								grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "life");
-							}
+					
+					// Check if wall exists
+					if(grid[i][j] != null) {
+						// Updating grid sprites
+						// -1 is last column 
+						// -2 is before last but last column is not generated yet (below)
+						// So we check at the -3 column
+						if(i == grid.length - 3 && wallMoved == gridSpeed) {
+							checkSprite(grid[i][j], i, j);
 						}
 						
+						// Scrolling wall to the left
+						grid[i][j].setX(grid[i][j].getX() - gridSpeed);
+						if(wallMoved >= mesh_width) {
+							moved = true;
+							if(i > 0) {
+								grid[i - 1][j] = grid[i][j];
+							}
+							grid[i][j] = null;
+						}
 					}
 				}
-				int j;
-				int width;
-				int height;
-				
-				// Generate enemies
-				for(int n = 0 ; n <= 1 ; n++) {
-					next = rand.nextInt(enemy_rate[n]);
-					if(next == 0) {
-						switch(n) {
-							case 0:
-								j = top_wall + 1;
-								width = 32;
-								height = 64;
-								break;
-							case 1:
-								j = rand.nextInt(bottom_wall - top_wall - 2) + top_wall + 1;
-								width = 40;
-								height = 17;
-								break;
-							default:
-								j = 0;
-								width = 0;
-								height = 0;
-								break;
-						}
-						enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, n, rand.nextInt(enemy_reload[n][1] - enemy_reload[n][0]) + enemy_reload[n][0], rand.nextInt(enemy_reload[n][0])));
+				// Generate new objects
+				if(i == grid.length - 1 && moved) {
+					// Generate new grid
+					
+					// For bottom wall
+					int next = rand.nextInt(2 * max_wall_delta + 1) - max_wall_delta;
+					if(bottom_wall + next < top_wall + minimum_wall_space || bottom_wall + next > wall_max_y) {
+						next = 0;
 					}
-				}			
+					bottom_wall += next;
+					grid[i][bottom_wall] = new Cell(i * mesh_width, bottom_wall * mesh_height, "wall", mesh_width, mesh_height);
+					
+					// Fill all the grid under bottom wall
+					for(int j = bottom_wall + 1 ; j < grid[0].length ; j++) {
+						grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "wall", mesh_width, mesh_height);
+					}
+					
+					
+					// For top wall
+					next = rand.nextInt(2* max_wall_delta + 1) - max_wall_delta;
+					if(top_wall + next < 0 || top_wall + next > bottom_wall - minimum_wall_space) {
+						next = 0;
+					}
+					top_wall += next;
+					grid[i][top_wall] = new Cell(i * mesh_width, top_wall * mesh_height, "wall", mesh_width, mesh_height);
+					
+					// Fill all the grid over top wall
+					for(int j = top_wall - 1 ; j >= 0 ; j--) {
+						grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "wall", mesh_width, mesh_height);
+					}
+				
+					// Generate Ammo and life
+					for(int j = 0 ; j < grid[0].length ; j++) {
+						if(grid[i][j] == null) {
+							next = rand.nextInt(Ammo_rate);
+							if(next == 0) {
+								grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "ammo", rand.nextInt(6) + 5);
+							}
+							else{
+								next = rand.nextInt(life_rate);
+								if(next == 0) {
+									grid[i][j] = new Cell(i * mesh_width, j * mesh_height, "life");
+								}
+							}
+							
+						}
+					}
+					int j;
+					int width;
+					int height;
+					
+					// Generate enemies
+					for(int n = 0 ; n <= 1 ; n++) {
+						next = rand.nextInt(enemy_rate[n]);
+						if(next == 0) {
+							switch(n) {
+								case 0:
+									j = top_wall + 1;
+									width = 32;
+									height = 64;
+									break;
+								case 1:
+									j = rand.nextInt(bottom_wall - top_wall - 2) + top_wall + 1;
+									width = 40;
+									height = 17;
+									break;
+								default:
+									j = 0;
+									width = 0;
+									height = 0;
+									break;
+							}
+							enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, n, rand.nextInt(enemy_reload[n][1] - enemy_reload[n][0]) + enemy_reload[n][0], rand.nextInt(enemy_reload[n][0]), enemy_life[n]));
+						}
+					}			
+				}
 			}
+			if(wallMoved >= mesh_width) {
+				wallMoved = 0;
+			}
+			
+			checkCollision();
 		}
-		if(wallMoved >= mesh_width) {
-			wallMoved = 0;
-		}
+
 		
-		checkCollision();
 	}
 	
 	
 	/*************************************************************************/
 	/******************************** Methods ********************************/
-	/*************************************************************************/
+	/**
+	 * @throws IOException ***********************************************************************/
+	
+	// upgrading enemies over levelup
+	public void upgrade_enemies() {
+		// Enemy spawn rate
+		if(enemy_rate[0] - 10 >= minimum_enemy_rate)
+			enemy_rate[0] -= 10;
+		if(enemy_rate[1] - 5 >= minimum_enemy_rate)
+			enemy_rate[1] -= 5;
+		
+		// Enemy life
+		enemy_life[0] += 1;
+		enemy_life[1] += 1;
+	}
+	
+	// End of the game logic
+	public void gameEnding() throws IOException {
+		if(score > highscore) {
+			endingMsg = "New highscore !\nScore : " + score + "\nHighscore : " + highscore;
+			Writer wr = new FileWriter("./data/highscore.txt");
+			try {
+				wr.write(String.valueOf(score));
+			}
+			finally {
+				if (wr != null) {
+					try {
+						wr.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else {
+			endingMsg = "Better luck next time !\nScore : " + score + "\nHighscore : " + highscore;
+		}
+	}
 	
 	public void checkCollision() throws SlickException {
 		// Player collision
@@ -644,16 +753,18 @@ public class WindowGame extends BasicGame {
 							else
 								player.setAmmo(max_ammo);
 							texts.add(new Text(i * mesh_width, j * mesh_height, "+" + grid[i][j].getValue(), new Color(255, 255, 255), "game"));
-							texts.add(new Text(200, height - 169, "+" + ammo_score, new Color(255, 255, 255), "HUD"));
+							texts.add(new Text(200, height - 212, "+" + ammo_score, new Color(255, 255, 255), "HUD"));
 							score += ammo_score;
+							player.setExp(player.getExp() + ammo_score);
 							grid[i][j] = null;
 							break;
 						case "life":
 							int max_life = level_life[player.getLevel() - 1];
 							if(player.getLife() + 1 <= max_life) 
 								player.setLife(player.getLife() + 1);
-							texts.add(new Text(200, height - 169, "+" + life_score, new Color(255, 255, 255), "HUD"));
+							texts.add(new Text(200, height - 212, "+" + life_score, new Color(255, 255, 255), "HUD"));
 							score += life_score;
+							player.setExp(player.getExp() + life_score);
 							grid[i][j] = null;
 							break;
 						case "wall":
@@ -680,6 +791,21 @@ public class WindowGame extends BasicGame {
 				}
 				lasers.remove(i);
 				explode(player.getX() / mesh_width, player.getY() / mesh_height, explosion_range);
+			}
+		}
+		// For enemies shoots
+		for(int i = 0 ; i < shoots.size() ; i++) {
+			Shoot s = shoots.get(i);
+			if(s.getType() == "enemy") {
+				boolean col = false;
+				col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), s.getX(), s.getY(), s.getWidth(), s.getHeight());
+				if(col) {
+					if(player.getLife() > 0) {
+						player.setLife(player.getLife() - 1);
+					}
+					shoots.remove(i);
+					explode(player.getX() / mesh_width, player.getY() / mesh_height, explosion_range);
+				}
 			}
 		}
 	}

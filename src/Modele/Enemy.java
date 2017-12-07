@@ -18,7 +18,7 @@ public class Enemy extends Object {
 	private int maxLife;
 	private Image info_bar;
 	private int score;
-	public Enemy(int x, int y, int width, int height, int type, int reloadTime, int lastShoot) throws SlickException {
+	public Enemy(int x, int y, int width, int height, int type, int reloadTime, int lastShoot, int life) throws SlickException {
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -30,14 +30,14 @@ public class Enemy extends Object {
 		switch(type){
 			case 0:
 				this.image = new Image("img/enemy0.png");
-				this.life = 2;
-				this.maxLife = 2;
+				this.life = life;
+				this.maxLife = life;
 				this.score = 200;
 				break;
 			case 1:
 				this.image = new Image("img/enemy1.bmp", this.filter);
-				this.life = 3;
-				this.maxLife = 3;
+				this.life = life;
+				this.maxLife = life;
 				this.score = 300;
 				break;
 			default:
