@@ -182,5 +182,11 @@ public class Player extends Object {
 	 */
 	public void setDamage(int damage) {
 		this.damage = damage;
-	}	
+	}
+
+	public void downgrade_player_life() {
+		if (getLife() > 0) {
+			setLife(getLife() - 1);
+		}
+	}
 }

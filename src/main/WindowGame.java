@@ -1,3 +1,4 @@
+package main;
 /**
  * Main class
  */
@@ -67,7 +68,7 @@ public class WindowGame extends BasicGame {
 	private String endingMsg = null;
 	
 	// Life
-	private static int life_rate = 5000;
+	private static int life_rate = 3000;
 	private static int life_score = 50;
 	
 	// Ammo
@@ -75,18 +76,14 @@ public class WindowGame extends BasicGame {
 	private static int ammo_score = 30;
 	
 	// Enemies
+	private enemy_rating enemy_rating = new enemy_rating();
 	private static int laser_duration = 40;
 	private ArrayList<Enemy> enemies = new ArrayList<Enemy>(); 
-	private static int minimum_enemy_rate = 10;
-	private static int enemy0_rate = 100;
-	private static int enemy1_rate = 50;
-	private int[] enemy_rate = {enemy0_rate, enemy1_rate};
+	public static int minimum_enemy_rate = 20;
 	private static int[][] enemy_reload = {
 			{80, 200}, // enemy 0 
 			{80, 180} // enemy 1
 			};
-	private int[] enemy_life = {2, 3};
-	
 	// Explosion
 	private static int explosion_range = 7;
 	private static int explosion_frame_duration = 70;
@@ -116,10 +113,10 @@ public class WindowGame extends BasicGame {
 	private static final Logger logger = LogManager.getLogger("storm");
 	
 	// Player
-	private static int max_level = 5;
+	public static int max_level = 5;
 	private static int tp_range = 300;
 	private static int[] level_life = {3, 4, 5, 7, 10};
-	private static int[] level_damage = {1, 2, 3, 5, 10};
+	private static int[] level_damage = {1, 2, 2, 3, 3};
 	private static int max_ammo = 500;
 	private static int[] player_exp = {1000, 1500, 2000, 2500, 5000};
 	
@@ -140,7 +137,7 @@ public class WindowGame extends BasicGame {
 	private ArrayList<Background> bgs = new ArrayList<Background>();
 	private boolean[] moving = {false, false, false, false};
 	private boolean shoot = false;
-	private boolean debug = true;
+	private boolean debug = false;
 	private boolean tp = false;
 	private ArrayList<Shoot> shoots = new ArrayList<Shoot>();
 	private ArrayList<Text> texts = new ArrayList<Text>();
@@ -419,8 +416,10 @@ public class WindowGame extends BasicGame {
 				if(player.getLevel() + 1 <= max_level) {
 					logger.info("Player level up from " + player.getLevel() + " to " + (player.getLevel() + 1));
 					player.setLevel(player.getLevel() + 1);
-					upgrade_enemies();
 				}
+				if(player.getTp_reload() >= 100)
+					player.setTp_reload(player.getTp_reload() - 50);
+				enemy_rating.upgrade_enemies(this.player);
 				animes.add(new Anime(player.getX() + player.getWidth() / 2 - LU_width / 2, player.getY() + player.getHeight() / 2 - LU_height / 2, LU_frame_duration, LU_width, LU_height, "LU"));
 			}
 			
@@ -477,14 +476,14 @@ public class WindowGame extends BasicGame {
 				logger.info("Player shot");
 				switch(player.getLevel()) {
 					case 1:
-						this.shoots.add(new Shoot(x, y, "ally"));
-						break;
 					case 2:
 						this.shoots.add(new Shoot(x, y, "ally"));
-						this.shoots.add(new Shoot(x, y + 10, "ally"));
 						break;
 					case 3:
 					case 4:
+						this.shoots.add(new Shoot(x, y, "ally"));
+						this.shoots.add(new Shoot(x, y + 10, "ally"));
+						break;
 					case 5:
 						this.shoots.add(new Shoot(x, y, "ally"));
 						this.shoots.add(new Shoot(x, y + 10, "ally"));
@@ -530,7 +529,10 @@ public class WindowGame extends BasicGame {
 				if(e.getLife() <= 0) {
 					texts.add(new Text(200, height - 213, "+" + e.getScore(), new Color(255, 255, 255), "HUD"));
 					score += e.getScore();
-					player.setExp(player.getExp() + e.getScore());
+					if(player.getLevel() == max_level)
+						player.setExp(player.getExp() + e.getScore() * 5);
+					else
+						player.setExp(player.getExp() + e.getScore());
 					enemies.remove(i);
 				}
 				
@@ -579,6 +581,7 @@ public class WindowGame extends BasicGame {
 			wallMoved += gridSpeed;
 			boolean moved = false;
 			for(int i = 0 ; i < grid.length ; i++) {
+				moved = check_moved(moved, i);
 				for(int j = 0 ; j < grid[0].length ; j++) {
 					
 					// Check if wall exists
@@ -594,7 +597,6 @@ public class WindowGame extends BasicGame {
 						// Scrolling wall to the left
 						grid[i][j].setX(grid[i][j].getX() - gridSpeed);
 						if(wallMoved >= mesh_width) {
-							moved = true;
 							if(i > 0) {
 								grid[i - 1][j] = grid[i][j];
 							}
@@ -655,7 +657,7 @@ public class WindowGame extends BasicGame {
 					
 					// Generate enemies
 					for(int n = 0 ; n <= 1 ; n++) {
-						next = rand.nextInt(enemy_rate[n]);
+						next = rand.nextInt(enemy_rating.getEnemy_rate()[n]);
 						if(next == 0) {
 							switch(n) {
 								case 0:
@@ -674,7 +676,7 @@ public class WindowGame extends BasicGame {
 									height = 0;
 									break;
 							}
-							enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, n, rand.nextInt(enemy_reload[n][1] - enemy_reload[n][0]) + enemy_reload[n][0], rand.nextInt(enemy_reload[n][0]), enemy_life[n]));
+							enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, n, rand.nextInt(enemy_reload[n][1] - enemy_reload[n][0]) + enemy_reload[n][0], rand.nextInt(enemy_reload[n][0]), enemy_rating.getEnemy_life()[n]));
 						}
 					}			
 				}
@@ -688,6 +690,17 @@ public class WindowGame extends BasicGame {
 
 		
 	}
+
+	private boolean check_moved(boolean moved, int i) {
+		for (int j = 0; j < grid[0].length; j++) {
+			if (grid[i][j] != null) {
+				if (wallMoved >= mesh_width) {
+					moved = true;
+				}
+			}
+		}
+		return moved;
+	}
 	
 	
 	/*************************************************************************/
@@ -697,15 +710,7 @@ public class WindowGame extends BasicGame {
 	
 	// upgrading enemies over levelup
 	public void upgrade_enemies() {
-		// Enemy spawn rate
-		if(enemy_rate[0] - 10 >= minimum_enemy_rate)
-			enemy_rate[0] -= 10;
-		if(enemy_rate[1] - 5 >= minimum_enemy_rate)
-			enemy_rate[1] -= 5;
-		
-		// Enemy life
-		enemy_life[0] += 1;
-		enemy_life[1] += 1;
+		enemy_rating.upgrade_enemies(this.player);
 	}
 	
 	// End of the game logic
@@ -740,6 +745,7 @@ public class WindowGame extends BasicGame {
 	}
 	
 	public void checkPlayerCollision() throws SlickException {
+		playerUpdate();
 		// For the grid
 		for(int i = 0 ; i < grid.length ; i++) {
 			for(int j = 0 ; j < grid[0].length ; j++) {
@@ -748,29 +754,17 @@ public class WindowGame extends BasicGame {
 					if(col) {
 						switch(grid[i][j].getType()) {
 						case "ammo":
-							if(player.getAmmo() + grid[i][j].getValue() < max_ammo) 
-								player.setAmmo(player.getAmmo() + grid[i][j].getValue());
-							else
-								player.setAmmo(max_ammo);
 							texts.add(new Text(i * mesh_width, j * mesh_height, "+" + grid[i][j].getValue(), new Color(255, 255, 255), "game"));
 							texts.add(new Text(200, height - 212, "+" + ammo_score, new Color(255, 255, 255), "HUD"));
 							score += ammo_score;
-							player.setExp(player.getExp() + ammo_score);
 							grid[i][j] = null;
 							break;
 						case "life":
-							int max_life = level_life[player.getLevel() - 1];
-							if(player.getLife() + 1 <= max_life) 
-								player.setLife(player.getLife() + 1);
 							texts.add(new Text(200, height - 212, "+" + life_score, new Color(255, 255, 255), "HUD"));
 							score += life_score;
-							player.setExp(player.getExp() + life_score);
 							grid[i][j] = null;
 							break;
 						case "wall":
-							if(player.getLife() > 0) {
-								player.setLife(player.getLife() - 1);
-							}
 							explode(i, j, explosion_range);
 							break;
 						default:
@@ -782,13 +776,8 @@ public class WindowGame extends BasicGame {
 		}
 		// For lasers
 		for(int i = 0 ; i < lasers.size() ; i++) {
-			Laser l = lasers.get(i);
-			boolean col = false;
-			col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), l.getX(), l.getY(), l.getWidth(), l.getHeight());
+			boolean col = check_player_get_shot_laser(i);
 			if(col) {
-				if(player.getLife() > 0) {
-					player.setLife(player.getLife() - 1);
-				}
 				lasers.remove(i);
 				explode(player.getX() / mesh_width, player.getY() / mesh_height, explosion_range);
 			}
@@ -800,48 +789,124 @@ public class WindowGame extends BasicGame {
 				boolean col = false;
 				col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), s.getX(), s.getY(), s.getWidth(), s.getHeight());
 				if(col) {
-					if(player.getLife() > 0) {
-						player.setLife(player.getLife() - 1);
-					}
 					shoots.remove(i);
 					explode(player.getX() / mesh_width, player.getY() / mesh_height, explosion_range);
 				}
 			}
 		}
 	}
-	
-	public void checkPlayerShootCollision() throws SlickException {
-		for(int k = 0 ; k < shoots.size() ; k ++) {
-			Shoot s = shoots.get(k);
-			if(s.getType() == "ally") {
-				boolean removed = false;
-				// For the grid
-				for(int i = 0 ; i < grid.length ; i++) {
-					for(int j = 0 ; j < grid[0].length ; j++) {
-						if(grid[i][j] != null) {
-							boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
-							if(col && removed == false) {
-								switch(grid[i][j].getType()) {
-								case "wall":
-									explode(s.getX() / mesh_width, s.getY() / mesh_height, shoot_explosion_range);
-									break;
-								default:
-									break;
-								}
-								shoots.remove(k);
-								removed = true;
+
+	private boolean check_player_get_shot_laser(int i) {
+		Laser l = lasers.get(i);
+		boolean col = false;
+		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), l.getX(), l.getY(),
+				l.getWidth(), l.getHeight());
+		return col;
+	}
+
+	private void playerUpdate() {
+		for (int i = 0; i < grid.length; i++) {
+			for (int j = 0; j < grid[0].length; j++) {
+				if (grid[i][j] != null) {
+					boolean col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(),
+							grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
+					if (col) {
+						switch (grid[i][j].getType()) {
+						case "ammo":
+							if (player.getAmmo() + grid[i][j].getValue() < max_ammo)
+								player.setAmmo(player.getAmmo() + grid[i][j].getValue());
+							else
+								player.setAmmo(max_ammo);
+							if (player.getLevel() == max_level)
+								player.setExp(player.getExp() + ammo_score * 5);
+							else
+								player.setExp(player.getExp() + ammo_score);
+							break;
+						case "life":
+							int max_life = level_life[player.getLevel() - 1];
+							if (player.getLife() + 1 <= max_life)
+								player.setLife(player.getLife() + 1);
+							if (player.getLevel() == max_level)
+								player.setExp(player.getExp() + life_score * 5);
+							else
+								player.setExp(player.getExp() + life_score);
+							break;
+						case "wall":
+							if (player.getLife() > 0) {
+								player.setLife(player.getLife() - 1);
 							}
+							break;
 						}
 					}
 				}
-				
+			}
+		}
+		// Check if a laser touch the player
+		for (int i = 0; i < lasers.size(); i++) {
+			check_laser_colision(i);
+		}
+		// Check if a enemy shot touch the player
+		for (int i = 0; i < shoots.size(); i++) {
+			Shoot s = shoots.get(i);
+			if (s.getType() == "enemy") {
+				check_player_get_shot(s);
+			}
+		}
+	}
+	
+	public void check_player_get_shot(Shoot s) {
+		boolean col = false;
+		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), s.getX(), s.getY(), s.getWidth(),
+				s.getHeight());
+		if (col) {
+			player.downgrade_player_life();
+		}
+	}	
+
+	private void check_laser_colision(int i) {
+		Laser l = lasers.get(i);
+		boolean col = false;
+		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), l.getX(), l.getY(),
+				l.getWidth(), l.getHeight());
+		if (col) {
+			player.downgrade_player_life();
+		}
+	}
+
+	public void checkPlayerShootCollision() throws SlickException {
+		for(int k = 0 ; k < shoots.size() ; k ++) {
+			Shoot s = shoots.get(k);
+			
+			boolean removed = false;
+			// For the grid
+			for(int i = 0 ; i < grid.length ; i++) {
+				for(int j = 0 ; j < grid[0].length ; j++) {
+					if(grid[i][j] != null) {
+						boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
+						if(col && removed == false) {
+							switch(grid[i][j].getType()) {
+							case "wall":
+								if(s.getType() == "ally") 
+									explode(s.getX() / mesh_width, s.getY() / mesh_height, shoot_explosion_range);
+								break;
+							default:
+								break;
+							}
+							shoots.remove(k);
+							removed = true;
+						}
+					}
+				}
+			}
+			
+			if(s.getType() == "ally") {
 				// For enemies
 				if(removed == false) {
 					for(int n = 0 ; n < enemies.size() ; n++) {
 						Enemy e = enemies.get(n);
 						boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), e.getX(), e.getY(), e.getWidth(), e.getHeight());
 						if(col && removed == false) {
-							e.setLife(e.getLife() - player.getDamage());
+							e.setLife(e.getLife() - level_damage[player.getLevel() - 1]);
 							shoots.remove(k);
 							removed = true;
 						}
