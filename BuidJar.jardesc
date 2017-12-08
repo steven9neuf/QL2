@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jardesc>
+    <jar path="/Users/steven/Downloads/Storm.jar"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/QualiteLogiciel2/BuidJar.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <manifest generateManifest="true" mainClassHandleIdentifier="=QualiteLogiciel2/src&lt;main{WindowGame.java[WindowGame" manifestLocation="" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+        <sealing sealJar="false">
+            <packagesToSeal/>
+            <packagesToUnSeal/>
+        </sealing>
+    </manifest>
+    <selectedElements exportClassFiles="true" exportJavaFiles="false" exportOutputFolder="false">
+        <folder path="/QualiteLogiciel2/logs"/>
+        <javaElement handleIdentifier="=QualiteLogiciel2/src"/>
+        <file path="/QualiteLogiciel2/.classpath"/>
+        <file path="/QualiteLogiciel2/hs_err_pid3166.log"/>
+        <file path="/QualiteLogiciel2/output.txt"/>
+        <file path="/QualiteLogiciel2/.DS_Store"/>
+        <folder path="/QualiteLogiciel2/lib"/>
+        <folder path="/QualiteLogiciel2/img"/>
+        <file path="/QualiteLogiciel2/build.xml"/>
+        <folder path="/QualiteLogiciel2/data"/>
+        <folder path="/QualiteLogiciel2/font"/>
+        <file path="/QualiteLogiciel2/.travis.yml"/>
+        <file path="/QualiteLogiciel2/.gitignore"/>
+        <file path="/QualiteLogiciel2/README.md"/>
+        <file path="/QualiteLogiciel2/.project"/>
+    </selectedElements>
+</jardesc>

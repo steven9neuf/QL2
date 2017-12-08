@@ -1,7 +1,5 @@
 package modele;
-/**
- * 
- */
+
 
 
 import org.newdawn.slick.Animation;
@@ -23,6 +21,7 @@ public class Player extends Base {
 	private int exp;
 	private int level;
 	private int damage;
+	private LevelState levelState = null;
 	
 	public Player(int x, int y) throws SlickException {
 		this.x = x;
@@ -43,6 +42,14 @@ public class Player extends Base {
 		this.animation.addFrame(new Image("img/player_frame1.bmp", filter), 100);
 		this.animation.addFrame(new Image("img/player_frame2.bmp", filter), 100);
 		this.info_bar = new Image("img/info_bar.png");
+	}
+	
+	public LevelState getLevelState() {
+		return this.levelState;
+	}
+	
+	public void setLevelState(LevelState l) {
+		this.levelState = l;
 	}
 
 	/**

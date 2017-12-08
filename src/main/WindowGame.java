@@ -38,8 +38,8 @@ public class WindowGame extends BasicGame {
 	// Game Parameters
 	// private static int maxFPS = 60;
 	// 640 * 480 // 800 * 600 // 1024 * 768 // 1440 * 900 // 1920 * 1080
-	private static int width = 1920; 
-	private static int height = 1080;
+	private static int width = 1440; 
+	private static int height = 900;
 	private static int bg_width = 1920;
 	private static int bg_height = 1080;
 	private static boolean fullscreen = true;
@@ -110,6 +110,13 @@ public class WindowGame extends BasicGame {
 	private static int max_ammo = 500;
 	private static int[] player_exp = {1000, 1500, 2000, 2500, 5000};
 	
+	//Level
+	private LevelState1 level1 = new LevelState1();
+	private LevelState2 level2 = new LevelState2();
+	private LevelState3 level3 = new LevelState3();
+	private LevelState4 level4 = new LevelState4();
+	private LevelState5 level5 = new LevelState5();
+	
 	// Info_bar
 	private static int info_height = 3;
 	
@@ -146,7 +153,7 @@ public class WindowGame extends BasicGame {
 	private ArrayList<Anime> animes = new ArrayList<Anime>();
 	private ArrayList<Laser> lasers = new ArrayList<Laser>();
 	
-	public static void main(String[] args) throws SlickException {
+	public static void main(String[] args) {
 		try {
 	        AppGameContainer app = new AppGameContainer(new WindowGame(), width, height, fullscreen);
 	        //app.setTargetFrameRate(maxFPS);
@@ -177,6 +184,7 @@ public class WindowGame extends BasicGame {
 		
 		// Player initialization
 		this.player = new Player(320, 240);
+		level1.assignState(player);
 		
 		// Background initialization
 		Background bg = new Background(0, 0);
@@ -339,7 +347,7 @@ public class WindowGame extends BasicGame {
 		
 		// Player
 		HUD_font.drawString(20, 20, "Stage " + stage);
-		HUD_font.drawString(20, 70, "Level " + player.getLevel());
+		HUD_font.drawString(20, 70, player.getLevelState().toString());
 		life.draw(20, 115, 32, 32);
 		HUD_font.drawString(60, 120, ": " + level_life[player.getLevel() - 1]);
 		bullet.draw(20, 165, 32, 32);
@@ -402,11 +410,29 @@ public class WindowGame extends BasicGame {
 			}
 			
 			// Level logic
-			if(player.getExp() > player_exp[player.getLevel() - 1]) {
+			if(player.getExp() > player_exp[player.getLevelState().getLevel() - 1]) {
 				player.setExp(0);
-				if(player.getLevel() + 1 <= max_level) {
-					logger.info("Player level up from " + player.getLevel() + " to " + (player.getLevel() + 1));
+				if(player.getLevelState().getLevel() + 1 <= max_level) {
+					logger.info("Player level up from " + player.getLevelState().getLevel() + " to " + (player.getLevelState().getLevel() + 1));
 					player.setLevel(player.getLevel() + 1);
+					switch(player.getLevelState().getLevel()) {
+						case 1:
+							level2.assignState(player);
+							break;
+						case 2:
+							level3.assignState(player);
+							break;
+						case 3:
+							level4.assignState(player);
+							break;
+						case 4:
+							level5.assignState(player);
+							break;
+						case 5:
+							break;
+						default:
+							break;
+					}
 				}
 				if(player.getTp_reload() >= 100)
 					player.setTp_reload(player.getTp_reload() - 50);
@@ -520,7 +546,7 @@ public class WindowGame extends BasicGame {
 				if(e.getLife() <= 0) {
 					texts.add(new Text(200, height - 213, "+" + e.getScore(), new Color(255, 255, 255), "HUD"));
 					score += e.getScore();
-					if(player.getLevel() == max_level)
+					if(player.getLevelState().getLevel() == max_level)
 						player.setExp(player.getExp() + e.getScore() * 5);
 					else
 						player.setExp(player.getExp() + e.getScore());

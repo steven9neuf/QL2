@@ -1,10 +1,9 @@
 package modele;
-/**
- * 
- */
+
 
 
 import org.newdawn.slick.*;
+
 
 
 /**
