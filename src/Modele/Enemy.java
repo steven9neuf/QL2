@@ -15,7 +15,7 @@ public class Enemy extends Base {
 	private int lastShoot;
 	private int life;
 	private int maxLife;
-	private Image info_bar;
+	private Image infoBar;
 	private int score;
 	public Enemy(int x, int y, int width, int height, int type, int reloadTime, int lastShoot, int life) throws SlickException {
 		this.x = x;
@@ -25,7 +25,7 @@ public class Enemy extends Base {
 		this.type = type;
 		this.reloadTime = reloadTime;
 		this.lastShoot = lastShoot;
-		this.info_bar = new Image("img/info_bar.png");
+		this.infoBar = new Image("img/info_bar.png");
 		switch(type){
 			case 0:
 				this.image = new Image("img/enemy0.png");
@@ -113,15 +113,15 @@ public class Enemy extends Base {
 	/**
 	 * @return the info_bar
 	 */
-	public Image getInfo_bar() {
-		return info_bar;
+	public Image getInfoBar() {
+		return infoBar;
 	}
 
 	/**
 	 * @param info_bar the info_bar to set
 	 */
-	public void setInfo_bar(Image info_bar) {
-		this.info_bar = info_bar;
+	public void setInfoBar(Image infoBar) {
+		this.infoBar = infoBar;
 	}
 
 	/**

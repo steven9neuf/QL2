@@ -15,9 +15,9 @@ public class Player extends Base {
 	private int lastShoot;
 	private int life;
 	private int ammo;
-	private int tp_reload;
-	private int last_tp;
-	private Image info_bar;
+	private int tpReload;
+	private int lastTp;
+	private Image infoBar;
 	private int exp;
 	private int level;
 	private int damage;
@@ -33,15 +33,15 @@ public class Player extends Base {
 		this.lastShoot = 0;
 		this.life = 3;
 		this.ammo = 32;
-		this.tp_reload = 300;
-		this.last_tp = 300;
+		this.tpReload = 300;
+		this.lastTp = 300;
 		this.exp = 0;
 		this.level = 1;
 		this.damage = 1;
 		this.animation = new Animation();
 		this.animation.addFrame(new Image("img/player_frame1.bmp", filter), 100);
 		this.animation.addFrame(new Image("img/player_frame2.bmp", filter), 100);
-		this.info_bar = new Image("img/info_bar.png");
+		this.infoBar = new Image("img/info_bar.png");
 	}
 	
 	public LevelState getLevelState() {
@@ -111,43 +111,43 @@ public class Player extends Base {
 	/**
 	 * @return the tp_reload
 	 */
-	public int getTp_reload() {
-		return tp_reload;
+	public int getTpReload() {
+		return tpReload;
 	}
 
 	/**
 	 * @param tp_reload the tp_reload to set
 	 */
-	public void setTp_reload(int tp_reload) {
-		this.tp_reload = tp_reload;
+	public void setTpReload(int tpReload) {
+		this.tpReload = tpReload;
 	}
 
 	/**
 	 * @return the last_tp
 	 */
-	public int getLast_tp() {
-		return last_tp;
+	public int getLastTp() {
+		return lastTp;
 	}
 
 	/**
 	 * @param last_tp the last_tp to set
 	 */
-	public void setLast_tp(int last_tp) {
-		this.last_tp = last_tp;
+	public void setLast_tp(int lastTp) {
+		this.lastTp = lastTp;
 	}
 
 	/**
 	 * @return the info_bar
 	 */
-	public Image getInfo_bar() {
-		return info_bar;
+	public Image getInfoBar() {
+		return infoBar;
 	}
 
 	/**
 	 * @param info_bar the info_bar to set
 	 */
-	public void setInfo_bar(Image info_bar) {
-		this.info_bar = info_bar;
+	public void setInfoBar(Image infoBar) {
+		this.infoBar = infoBar;
 	}
 
 	/**
@@ -192,7 +192,7 @@ public class Player extends Base {
 		this.damage = damage;
 	}
 
-	public void downgrade_player_life() {
+	public void downgradePlayerLife() {
 		if (getLife() > 0) {
 			setLife(getLife() - 1);
 		}

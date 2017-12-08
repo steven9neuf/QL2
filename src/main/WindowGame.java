@@ -15,16 +15,13 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 
-import org.newdawn.slick.AppGameContainer;
-import org.newdawn.slick.BasicGame;
-import org.newdawn.slick.Color;
-import org.newdawn.slick.GameContainer;
-import org.newdawn.slick.Graphics;
-import org.newdawn.slick.Image;
-import org.newdawn.slick.Input;
-import org.newdawn.slick.SlickException;
-import org.newdawn.slick.UnicodeFont;
+import org.newdawn.slick.Image.*;
+import org.newdawn.slick.*;
+import org.newdawn.slick.Animation;
+import org.newdawn.slick.font.*;
 import org.newdawn.slick.font.effects.ColorEffect;
+import org.newdawn.slick.BasicGame;
+import org.newdawn.slick.GameContainer;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -175,10 +172,6 @@ public class WindowGame extends BasicGame {
 	/*************************************************************************/
 	/***************************** Initialization ****************************/
 	/*************************************************************************/
-	/* (non-Javadoc)
-	 * @see org.newdawn.slick.BasicGame#init(org.newdawn.slick.GameContainer)
-	 */
-	@Override
 	public void init(GameContainer gc) throws SlickException {
 		this.container = gc;
 		
@@ -257,10 +250,6 @@ public class WindowGame extends BasicGame {
 	/*************************************************************************/
 	/*********************************** Render ******************************/
 	/*************************************************************************/
-	/* (non-Javadoc)
-	 * @see org.newdawn.slick.Game#render(org.newdawn.slick.GameContainer, org.newdawn.slick.Graphics)
-	 */
-	@Override
 	public void render(GameContainer gc, Graphics g) throws SlickException {
 		if(initialization) {
 			// Pre load animations
@@ -300,7 +289,7 @@ public class WindowGame extends BasicGame {
 			x = e.getX();
 			y = e.getY();
 			e.getImage().draw(x, y, e.getWidth(), e.getHeight());
-			e.getInfo_bar().draw(x, y + e.getHeight(), e.getWidth() * e.getLife() / e.getMaxLife(), info_height, new Color(244, 67, 54));	
+			e.getInfoBar().draw(x, y + e.getHeight(), e.getWidth() * e.getLife() / e.getMaxLife(), info_height, new Color(244, 67, 54));	
 		}
 		
 		// Drawing lasers
@@ -354,11 +343,11 @@ public class WindowGame extends BasicGame {
 		HUD_font.drawString(60, 170, ": " + level_damage[player.getLevel() - 1]);
 		
 		// Info_bar
-		if(player.getLast_tp() < player.getTp_reload())
-			player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth() * player.getLast_tp() / player.getTp_reload(), info_height, new Color(0, 191, 255));
+		if(player.getLastTp() < player.getTpReload())
+			player.getInfoBar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth() * player.getLastTp() / player.getTpReload(), info_height, new Color(0, 191, 255));
 		else
-			player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth(), info_height, new Color(0, 255, 191));
-		player.getInfo_bar().draw(player.getX(), player.getY() + player.getHeight() + info_height, player.getWidth() * player.getExp() / player_exp[player.getLevel() - 1], info_height, new Color(250, 250, 250));
+			player.getInfoBar().draw(player.getX(), player.getY() + player.getHeight(), player.getWidth(), info_height, new Color(0, 255, 191));
+		player.getInfoBar().draw(player.getX(), player.getY() + player.getHeight() + info_height, player.getWidth() * player.getExp() / player_exp[player.getLevel() - 1], info_height, new Color(250, 250, 250));
 		
 		// Score
 		HUD_font.drawString(20, height - 169, "Score : " + score);
@@ -388,7 +377,6 @@ public class WindowGame extends BasicGame {
 	/* (non-Javadoc)
 	 * @see org.newdawn.slick.BasicGame#update(org.newdawn.slick.GameContainer, int)
 	 */
-	@Override
 	public void update(GameContainer arg0, int arg1) throws SlickException {	
 		
 		// Life logic
@@ -434,8 +422,8 @@ public class WindowGame extends BasicGame {
 							break;
 					}
 				}
-				if(player.getTp_reload() >= 100)
-					player.setTp_reload(player.getTp_reload() - 50);
+				if(player.getTpReload() >= 100)
+					player.setTpReload(player.getTpReload() - 50);
 				enemy_rating.upgrade_enemies(this.player);
 				animes.add(new Anime(player.getX() + player.getWidth() / 2 - LU_width / 2, player.getY() + player.getHeight() / 2 - LU_height / 2, LU_frame_duration, LU_width, LU_height, "LU"));
 			}
@@ -465,8 +453,8 @@ public class WindowGame extends BasicGame {
 			}
 			
 			// Moving logic
-			if(player.getLast_tp() + 1 <= player.getTp_reload())
-				player.setLast_tp(player.getLast_tp() + 1);
+			if(player.getLastTp() + 1 <= player.getTpReload())
+				player.setLast_tp(player.getLastTp() + 1);
 			int x = player.getX();
 			int y = player.getY();
 			if(this.moving[0]) {
@@ -481,7 +469,7 @@ public class WindowGame extends BasicGame {
 			if(this.moving[3]) {
 				player.setX(x - player.getSpeed());
 			}
-			if(tp && player.getLast_tp() >= player.getTp_reload()) {  
+			if(tp && player.getLastTp() >= player.getTpReload()) {  
 				player.setX(x + tp_range);
 				player.setLast_tp(0);
 				animes.add(new Anime(x + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
@@ -754,11 +742,17 @@ public class WindowGame extends BasicGame {
 		}
 	}
 	
-	public void checkCollision() throws SlickException {
-		// Player collision
-		checkPlayerCollision();
-		// Player shoot collision
-		checkPlayerShootCollision();	
+	public void checkCollision() {
+		try {
+			// Player collision
+			checkPlayerCollision();
+			// Player shoot collision
+			checkPlayerShootCollision();	
+		}
+		catch(SlickException e)
+		{
+			System.out.println(e);
+		}
 	}
 	
 	public void checkPlayerCollision() throws SlickException {
@@ -876,7 +870,7 @@ public class WindowGame extends BasicGame {
 		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), s.getX(), s.getY(), s.getWidth(),
 				s.getHeight());
 		if (col) {
-			player.downgrade_player_life();
+			player.downgradePlayerLife();
 		}
 	}	
 
@@ -886,7 +880,7 @@ public class WindowGame extends BasicGame {
 		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), l.getX(), l.getY(),
 				l.getWidth(), l.getHeight());
 		if (col) {
-			player.downgrade_player_life();
+			player.downgradePlayerLife();
 		}
 	}
 
