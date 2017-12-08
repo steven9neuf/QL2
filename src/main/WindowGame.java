@@ -59,7 +59,7 @@ public class WindowGame extends BasicGame {
 	private static int ammo_score = 30;
 	
 	// Enemies
-	private enemy_rating enemy_rating = new enemy_rating();
+	private Enemy_rating enemy_rating = new Enemy_rating();
 	private static int laser_duration = 40;
 	private ArrayList<Enemy> enemies = new ArrayList<Enemy>(); 
 	public static int minimum_enemy_rate = 20;
@@ -139,7 +139,6 @@ public class WindowGame extends BasicGame {
 	private int wallMoved = 0;
 	// Has to be a diviser of mesh_width
 	private int gridSpeed = 4;
-	private Font font;
 	
 	private UnicodeFont HUD_font;
 	private UnicodeFont text_font;
@@ -176,6 +175,8 @@ public class WindowGame extends BasicGame {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+		
+		Font font = null;
 		
 		this.container = gc;
 		
@@ -327,7 +328,7 @@ public class WindowGame extends BasicGame {
 		// Drawing HUD
 		// Text
 		for(int i = 0 ; i < texts.size() ; i++) {
-			if(texts.get(i).getType() == "game")
+			if(texts.get(i).getType().equals("game"))
 				text_font.drawString(texts.get(i).getX(), texts.get(i).getY(), texts.get(i).getText());
 			else
 				HUD_font.drawString(texts.get(i).getX(), texts.get(i).getY(), texts.get(i).getText());
@@ -443,11 +444,9 @@ public class WindowGame extends BasicGame {
 				if(bg.getX() + bg_width < 0) {
 					this.bgs.remove(i);
 				}
-				if(i == this.bgs.size() - 1) {
-					if(bg.getX() + bg_width <= width) {
-						Background newBg = new Background(width, 0);
-						bgs.add(newBg);
-					}
+				if(i == this.bgs.size() - 1 && bg.getX() + bg_width <= width) {
+					Background newBg = new Background(width, 0);
+					bgs.add(newBg);
 				}
 			}
 			
@@ -503,7 +502,7 @@ public class WindowGame extends BasicGame {
 			player.setLastShoot(player.getLastShoot() + 1);
 			for(int i = 0 ; i < this.shoots.size() ; i++) {
 				Shoot s = this.shoots.get(i);
-				if(s.getType() == "ally")
+				if(s.getType().equals("ally"))
 					s.setX(s.getX() + s.getSpeed());
 				else
 					s.setX(s.getX() - s.getSpeed());
@@ -585,7 +584,8 @@ public class WindowGame extends BasicGame {
 			wallMoved += gridSpeed;
 			boolean moved = false;
 			for(int i = 0 ; i < grid.length ; i++) {
-				moved = check_moved(moved, i);
+				if(!moved)
+					moved = checkMoved(i);
 				for(int j = 0 ; j < grid[0].length ; j++) {
 					
 					// Check if wall exists
@@ -661,7 +661,7 @@ public class WindowGame extends BasicGame {
 					
 					// Generate enemies
 					for(int n = 0 ; n <= 1 ; n++) {
-						next = rand.nextInt(enemy_rating.getEnemy_rate()[n]);
+						next = rand.nextInt(enemy_rating.getEnemyRate()[n]);
 						if(next == 0) {
 							switch(n) {
 								case 0:
@@ -680,7 +680,7 @@ public class WindowGame extends BasicGame {
 									height = 0;
 									break;
 							}
-							enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, n, rand.nextInt(enemy_reload[n][1] - enemy_reload[n][0]) + enemy_reload[n][0], rand.nextInt(enemy_reload[n][0]), enemy_rating.getEnemy_life()[n]));
+							enemies.add(new Enemy(i * mesh_width - width / 2, j * mesh_height - height / 2, width, height, n, rand.nextInt(enemy_reload[n][1] - enemy_reload[n][0]) + enemy_reload[n][0], rand.nextInt(enemy_reload[n][0]), enemy_rating.getEnemyLife()[n]));
 						}
 					}			
 				}
@@ -695,7 +695,8 @@ public class WindowGame extends BasicGame {
 		
 	}
 
-	private boolean check_moved(boolean moved, int i) {
+	private boolean checkMoved(int i) {
+		boolean moved = false;
 		for (int j = 0; j < grid[0].length; j++) {
 			if (grid[i][j] != null && wallMoved >= mesh_width) {
 				moved = true;
@@ -911,11 +912,11 @@ public class WindowGame extends BasicGame {
 			
 			if(s.getType().equals("ally")) {
 				// For enemies
-				if(removed == false) {
+				if(!removed) {
 					for(int n = 0 ; n < enemies.size() ; n++) {
 						Enemy e = enemies.get(n);
 						boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), e.getX(), e.getY(), e.getWidth(), e.getHeight());
-						if(col && removed == false) {
+						if(col && !removed) {
 							e.setLife(e.getLife() - level_damage[player.getLevel() - 1]);
 							shoots.remove(k);
 							removed = true;
@@ -1039,12 +1040,12 @@ public class WindowGame extends BasicGame {
 		 	-W#
 		 	###
 			 */
-			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			/*if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
 			&& grid[i - 1][j    ] == null  						  && grid[i + 1][j    ] != null
 			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
 				//grid[i][j].setImage(new Image("img/H04.bmp", w.getFilter()));
-			}
+			}*/
 			
 			/*
 			###
