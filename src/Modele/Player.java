@@ -132,7 +132,7 @@ public class Player extends Base {
 	/**
 	 * @param last_tp the last_tp to set
 	 */
-	public void setLast_tp(int lastTp) {
+	public void setLastTp(int lastTp) {
 		this.lastTp = lastTp;
 	}
 

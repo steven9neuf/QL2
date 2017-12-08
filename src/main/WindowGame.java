@@ -15,10 +15,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 
-import org.newdawn.slick.Image.*;
 import org.newdawn.slick.*;
-import org.newdawn.slick.Animation;
-import org.newdawn.slick.font.*;
 import org.newdawn.slick.font.effects.ColorEffect;
 import org.newdawn.slick.BasicGame;
 import org.newdawn.slick.GameContainer;
@@ -51,7 +48,6 @@ public class WindowGame extends BasicGame {
 	private static int update_int = 20;
 	
 	// File 
-	private Scanner sc = null;
 	private String endingMsg = null;
 	
 	// Life
@@ -173,6 +169,14 @@ public class WindowGame extends BasicGame {
 	/***************************** Initialization ****************************/
 	/*************************************************************************/
 	public void init(GameContainer gc) throws SlickException {
+		Scanner sc = null;
+		try {
+			sc = new Scanner(new File("./data/highscore.txt"));
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
 		this.container = gc;
 		
 		// Player initialization
@@ -227,14 +231,9 @@ public class WindowGame extends BasicGame {
 		// Getting highscore
 		
 		try {
-			sc = new Scanner(new File("./data/highscore.txt"));
 			while (sc.hasNextInt()) {
 				highscore = sc.nextInt();
 			}
-		} 
-		catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} 
 		finally {
 			if (sc != null) {
@@ -424,7 +423,7 @@ public class WindowGame extends BasicGame {
 				}
 				if(player.getTpReload() >= 100)
 					player.setTpReload(player.getTpReload() - 50);
-				enemy_rating.upgrade_enemies(this.player);
+				enemy_rating.upgradeEnemies(this.player);
 				animes.add(new Anime(player.getX() + player.getWidth() / 2 - LU_width / 2, player.getY() + player.getHeight() / 2 - LU_height / 2, LU_frame_duration, LU_width, LU_height, "LU"));
 			}
 			
@@ -454,7 +453,7 @@ public class WindowGame extends BasicGame {
 			
 			// Moving logic
 			if(player.getLastTp() + 1 <= player.getTpReload())
-				player.setLast_tp(player.getLastTp() + 1);
+				player.setLastTp(player.getLastTp() + 1);
 			int x = player.getX();
 			int y = player.getY();
 			if(this.moving[0]) {
@@ -471,7 +470,7 @@ public class WindowGame extends BasicGame {
 			}
 			if(tp && player.getLastTp() >= player.getTpReload()) {  
 				player.setX(x + tp_range);
-				player.setLast_tp(0);
+				player.setLastTp(0);
 				animes.add(new Anime(x + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
 				animes.add(new Anime(x + tp_range + player.getWidth() / 2 - tp_width / 2, y + player.getHeight() / 2 - tp_height / 2, tp_frame_duration, tp_width, tp_height, "tp"));
 			}
@@ -518,11 +517,11 @@ public class WindowGame extends BasicGame {
 				Anime a = animes.get(i);
 				a.setX(a.getX() - gridSpeed);
 				a.setTimer(a.getTimer() + update_int);
-				if(a.getType() == "explosion" && a.getTimer() > explosion_frame_duration * 11)
+				if(a.getType().equals("explosion") && a.getTimer() > explosion_frame_duration * 11)
 					animes.remove(i);
-				else if(a.getType() == "tp" && a.getTimer() > tp_frame_duration * 9)
+				else if(a.getType().equals("tp") && a.getTimer() > tp_frame_duration * 9)
 					animes.remove(i);
-				else if(a.getType() == "LU" && a.getTimer() > LU_frame_duration * 21)
+				else if(a.getType().equals("LU") && a.getTimer() > LU_frame_duration * 21)
 					animes.remove(i);
 			}
 			
@@ -698,10 +697,8 @@ public class WindowGame extends BasicGame {
 
 	private boolean check_moved(boolean moved, int i) {
 		for (int j = 0; j < grid[0].length; j++) {
-			if (grid[i][j] != null) {
-				if (wallMoved >= mesh_width) {
-					moved = true;
-				}
+			if (grid[i][j] != null && wallMoved >= mesh_width) {
+				moved = true;
 			}
 		}
 		return moved;
@@ -714,8 +711,8 @@ public class WindowGame extends BasicGame {
 	 * @throws IOException ***********************************************************************/
 	
 	// upgrading enemies over levelup
-	public void upgrade_enemies() {
-		enemy_rating.upgrade_enemies(this.player);
+	public void upgradeEnemies() {
+		enemy_rating.upgradeEnemies(this.player);
 	}
 	
 	// End of the game logic
@@ -787,7 +784,7 @@ public class WindowGame extends BasicGame {
 		}
 		// For lasers
 		for(int i = 0 ; i < lasers.size() ; i++) {
-			boolean col = check_player_get_shot_laser(i);
+			boolean col = checkPlayerGetShotLaser(i);
 			if(col) {
 				lasers.remove(i);
 				explode(player.getX() / mesh_width, player.getY() / mesh_height, explosion_range);
@@ -807,7 +804,7 @@ public class WindowGame extends BasicGame {
 		}
 	}
 
-	private boolean check_player_get_shot_laser(int i) {
+	private boolean checkPlayerGetShotLaser(int i) {
 		Laser l = lasers.get(i);
 		boolean col = false;
 		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), l.getX(), l.getY(),
@@ -847,6 +844,8 @@ public class WindowGame extends BasicGame {
 								player.setLife(player.getLife() - 1);
 							}
 							break;
+						default:
+							break;
 						}
 					}
 				}
@@ -854,18 +853,18 @@ public class WindowGame extends BasicGame {
 		}
 		// Check if a laser touch the player
 		for (int i = 0; i < lasers.size(); i++) {
-			check_laser_colision(i);
+			checkLaserColision(i);
 		}
 		// Check if a enemy shot touch the player
 		for (int i = 0; i < shoots.size(); i++) {
 			Shoot s = shoots.get(i);
 			if (s.getType() == "enemy") {
-				check_player_get_shot(s);
+				checkPlayerGetShot(s);
 			}
 		}
 	}
 	
-	public void check_player_get_shot(Shoot s) {
+	public void checkPlayerGetShot(Shoot s) {
 		boolean col = false;
 		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), s.getX(), s.getY(), s.getWidth(),
 				s.getHeight());
@@ -874,7 +873,7 @@ public class WindowGame extends BasicGame {
 		}
 	}	
 
-	private void check_laser_colision(int i) {
+	private void checkLaserColision(int i) {
 		Laser l = lasers.get(i);
 		boolean col = false;
 		col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), l.getX(), l.getY(),
@@ -894,7 +893,7 @@ public class WindowGame extends BasicGame {
 				for(int j = 0 ; j < grid[0].length ; j++) {
 					if(grid[i][j] != null) {
 						boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), grid[i][j].getX(), grid[i][j].getY(), grid[i][j].getWidth(), grid[i][j].getHeight());
-						if(col && removed == false) {
+						if(col && !removed) {
 							switch(grid[i][j].getType()) {
 							case "wall":
 								if(s.getType() == "ally") 
@@ -910,7 +909,7 @@ public class WindowGame extends BasicGame {
 				}
 			}
 			
-			if(s.getType() == "ally") {
+			if(s.getType().equals("ally")) {
 				// For enemies
 				if(removed == false) {
 					for(int n = 0 ; n < enemies.size() ; n++) {
@@ -930,15 +929,15 @@ public class WindowGame extends BasicGame {
 	// Check if two entities collide
 	public boolean intersect(int px, int py, int pw, int ph, int cx, int cy, int cw, int ch) {
 		boolean bool = false;
-		boolean int_X = intersect_segments(cx, cx + cw, px, px + pw);
-		boolean int_Y = intersect_segments(cy, cy + ch, py, py + ph);
+		boolean int_X = intersectSegments(cx, cx + cw, px, px + pw);
+		boolean int_Y = intersectSegments(cy, cy + ch, py, py + ph);
 		if(int_X && int_Y)
 			bool = true;
 		return bool;
 	}
 	
 	// Check if two segment intersect
-	public boolean intersect_segments(int a, int b, int c, int d) {
+	public boolean intersectSegments(int a, int b, int c, int d) {
 		boolean bool = false;
 		if(c > a && c < b || d > a && d < b || c <= a && d >= b)
 			bool = true;
@@ -972,11 +971,12 @@ public class WindowGame extends BasicGame {
 	    switch (key) {
 	        case Input.KEY_UP:     	this.moving[0] = true; break;
 	        case Input.KEY_RIGHT:  	this.moving[1] = true; break;
-	        case Input.KEY_DOWN:	this.moving[2] = true; break;
-	        case Input.KEY_LEFT:	this.moving[3] = true; break;
+	        case Input.KEY_DOWN:		this.moving[2] = true; break;
+	        case Input.KEY_LEFT:		this.moving[3] = true; break;
 	        case Input.KEY_SPACE:	this.shoot = true; break;
-	        case Input.KEY_B:	tp = true; break;
+	        case Input.KEY_B:		tp = true; break;
 	        case Input.KEY_D:		this.debug = !this.debug; break;
+	        default:					break;
 	    }
 	}
 	
@@ -985,12 +985,13 @@ public class WindowGame extends BasicGame {
     public void keyReleased(int key, char c) {
         switch (key) {
         		case Input.KEY_UP:		this.moving[0] = false; break;
-        		case Input.KEY_RIGHT:   this.moving[1] = false; break;
+        		case Input.KEY_RIGHT:   	this.moving[1] = false; break;
         		case Input.KEY_DOWN:   	this.moving[2] = false; break;
         		case Input.KEY_LEFT:  	this.moving[3] = false; break;
         		case Input.KEY_SPACE:	this.shoot = false; break;
-        		case Input.KEY_B:	tp = false; break;
-        		case Input.KEY_ESCAPE: 	this.container.exit();
+        		case Input.KEY_B:		tp = false; break;
+        		case Input.KEY_ESCAPE: 	this.container.exit(); break;
+        		default:					break;
         }
     }
 	

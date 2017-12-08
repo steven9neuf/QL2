@@ -20,7 +20,7 @@ public class enemy_rating {
 	/**
 	* @throws IOException  
 	*/
-	public void upgrade_enemies(Player thisPlayer) {
+	public void upgradeEnemies(Player thisPlayer) {
 		if (enemy_rate[0] - 15 >= WindowGame.minimum_enemy_rate)
 			enemy_rate[0] -= 15;
 		else
