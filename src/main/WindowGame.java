@@ -794,7 +794,7 @@ public class WindowGame extends BasicGame {
 		// For enemies shoots
 		for(int i = 0 ; i < shoots.size() ; i++) {
 			Shoot s = shoots.get(i);
-			if(s.getType() == "enemy") {
+			if(s.getType().equals("enemy")) {
 				boolean col = false;
 				col = intersect(player.getX(), player.getY(), player.getWidth(), player.getHeight(), s.getX(), s.getY(), s.getWidth(), s.getHeight());
 				if(col) {
@@ -897,7 +897,7 @@ public class WindowGame extends BasicGame {
 						if(col && !removed) {
 							switch(grid[i][j].getType()) {
 							case "wall":
-								if(s.getType() == "ally") 
+								if(s.getType().equals("ally")) 
 									explode(s.getX() / mesh_width, s.getY() / mesh_height, shoot_explosion_range);
 								break;
 							default:
@@ -910,17 +910,15 @@ public class WindowGame extends BasicGame {
 				}
 			}
 			
-			if(s.getType().equals("ally")) {
+			if(s.getType().equals("ally") && !removed) {
 				// For enemies
-				if(!removed) {
-					for(int n = 0 ; n < enemies.size() ; n++) {
-						Enemy e = enemies.get(n);
-						boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), e.getX(), e.getY(), e.getWidth(), e.getHeight());
-						if(col && !removed) {
-							e.setLife(e.getLife() - level_damage[player.getLevel() - 1]);
-							shoots.remove(k);
-							removed = true;
-						}
+				for(int n = 0 ; n < enemies.size() ; n++) {
+					Enemy e = enemies.get(n);
+					boolean col = intersect(s.getX(), s.getY(), s.getWidth(), s.getHeight(), e.getX(), e.getY(), e.getWidth(), e.getHeight());
+					if(col && !removed) {
+						e.setLife(e.getLife() - level_damage[player.getLevel() - 1]);
+						shoots.remove(k);
+						removed = true;
 					}
 				}
 			}
@@ -1052,12 +1050,12 @@ public class WindowGame extends BasicGame {
 		 	#W-
 		 	###
 			 */
-			if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
+			/*if(grid[i - 1][j - 1] != null && grid[i][j - 1] != null && grid[i + 1][j - 1] != null
 			&& grid[i - 1][j    ] != null  						  && grid[i + 1][j    ] == null
 			&& grid[i - 1][j + 1] != null && grid[i][j + 1] != null && grid[i + 1][j + 1] != null	
 			) {
 				//grid[i][j].setImage(new Image("img/H05.bmp", w.getFilter()));
-			}
+			}*/
 			
 			/*
 			###
