@@ -1,7 +1,8 @@
+package modele;
 /**
  * 
  */
-package Modele;
+
 
 import org.newdawn.slick.Image;
 import org.newdawn.slick.SlickException;
@@ -10,7 +11,7 @@ import org.newdawn.slick.SlickException;
  * @author steven
  *
  */
-public class Laser extends Object {
+public class Laser extends Base {
 	private int timer;
 	private int duration;
 	public Laser(int x, int y, int width, int height, int duration) throws SlickException {

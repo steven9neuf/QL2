@@ -1,7 +1,7 @@
 package main;
 
 
-import Modele.Player;
+import modele.Player;
 
 public class enemy_rating {
 	private static int enemy0_rate = 120;

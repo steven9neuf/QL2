@@ -1,7 +1,8 @@
+package modele;
 /**
  * 
  */
-package Modele;
+
 
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Image;
@@ -11,7 +12,7 @@ import org.newdawn.slick.SlickException;
  * @author steven
  *
  */
-public class Background extends Object{
+public class Background extends Base{
 	public Background(int x, int y) throws SlickException {
 		this.x = x;
 		this.y = y;

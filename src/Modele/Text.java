@@ -1,7 +1,8 @@
+package modele;
 /**
  * 
  */
-package Modele;
+
 
 import org.newdawn.slick.Color;
 
@@ -9,7 +10,7 @@ import org.newdawn.slick.Color;
  * @author Steven
  *
  */
-public class Text extends Object {
+public class Text extends Base {
 	private String type;
 	private String text;
 	private int timer;

@@ -1,7 +1,8 @@
+package modele;
 /**
  * 
  */
-package Modele;
+
 
 import org.newdawn.slick.Image;
 import org.newdawn.slick.SlickException;
@@ -10,7 +11,7 @@ import org.newdawn.slick.SlickException;
  * @author Steven
  *
  */
-public class Enemy extends Object {
+public class Enemy extends Base {
 	private int type;
 	private int reloadTime;
 	private int lastShoot;

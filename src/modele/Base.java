@@ -1,10 +1,11 @@
-package Modele;
+package modele;
+
 
 import org.newdawn.slick.Animation;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Image;
 
-public class Object {
+public class Base {
 	protected int x;
 	protected int y;
 	protected int width;

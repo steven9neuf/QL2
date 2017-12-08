@@ -1,7 +1,8 @@
+package modele;
 /**
  * 
  */
-package Modele;
+
 
 import org.newdawn.slick.*;
 
@@ -10,7 +11,7 @@ import org.newdawn.slick.*;
  * @author steven
  *
  */
-public class Anime extends Object {
+public class Anime extends Base {
 	private int timer;
 	private String type;
 	

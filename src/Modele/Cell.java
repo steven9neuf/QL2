@@ -1,7 +1,8 @@
+package modele;
 /**
  * 
  */
-package Modele;
+
 
 import org.newdawn.slick.Image;
 import org.newdawn.slick.SlickException;
@@ -10,7 +11,7 @@ import org.newdawn.slick.SlickException;
  * @author steven
  *
  */
-public class Cell extends Object{
+public class Cell extends Base{
 	private String type;
 	private int value;
 	

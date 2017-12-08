@@ -2,21 +2,12 @@ package main;
 /**
  * Main class
  */
-import Modele.Player;
-import Modele.Shoot;
-import Modele.Anime;
-import Modele.Text;
-import Modele.Background;
-import Modele.Cell;
-import Modele.Enemy;
-import Modele.Laser;
+import modele.*;
 
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
@@ -64,7 +55,6 @@ public class WindowGame extends BasicGame {
 	
 	// File 
 	private Scanner sc = null;
-	private Writer wr = null;
 	private String endingMsg = null;
 	
 	// Life
@@ -207,7 +197,7 @@ public class WindowGame extends BasicGame {
 		HUD_font = new UnicodeFont(font, font.getSize(), font.isBold(), font.isItalic());
 		HUD_font.addAsciiGlyphs();
 		HUD_font.addGlyphs(400, 600);
-		HUD_font.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
+		extracted();
 		HUD_font.loadGlyphs();
 		
 		// Text score font
@@ -244,15 +234,16 @@ public class WindowGame extends BasicGame {
 		catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		finally {
 			if (sc != null) {
 				sc.close();
 			}
 		}
+	}
+
+	private boolean extracted() {
+		return HUD_font.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
 	}
 	
 	/*************************************************************************/

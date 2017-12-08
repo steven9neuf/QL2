@@ -1,7 +1,8 @@
+package modele;
 /**
  * 
  */
-package Modele;
+
 
 import org.newdawn.slick.Animation;
 import org.newdawn.slick.Image;
@@ -11,7 +12,7 @@ import org.newdawn.slick.SlickException;
  * @author steven
  *
  */
-public class Player extends Object {	
+public class Player extends Base {	
 	private int reloadTime;
 	private int lastShoot;
 	private int life;
