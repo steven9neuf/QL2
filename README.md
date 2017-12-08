@@ -1,26 +1,26 @@
 # Qualité logiciel 2 ![Build](https://travis-ci.org/steven9neuf/QL2.svg?branch=master) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7d7efccc7ca149758c3315a745449bbc)](https://www.codacy.com/app/steven9neuf/QL2?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=steven9neuf/QL2&amp;utm_campaign=Badge_Grade)
 
-#Qualité logiciel 2
+# Qualité logiciel 2
 
-##Application des bonnes pratiques de qualité de code
+## Application des bonnes pratiques de qualité de code
 
-##CHARPENTIER Emile | RAHIER Lucas | WONG Steven
+## CHARPENTIER Emile | RAHIER Lucas | WONG Steven
 
 
 
-#1. Présentation de l’équipe
+# 1. Présentation de l’équipe
 
-#2. Contexte
+# 2. Contexte
 
-#3. Présentation du code
+# 3. Présentation du code
 
-#4. Les pratiques mises en places
+# 4. Les pratiques mises en places
 
-    ##1. Outil de versionning
+    ## 1. Outil de versionning
 
-        ###1. Description
+        ### 1. Description
 
-        ###2. Mise en place
+        ### 2. Mise en place
 
 github
 
