@@ -16,11 +16,11 @@
 
 # 4. Les pratiques mises en places
 
-    ## 1. Outil de versionning
+## 1. Outil de versionning
 
-        ### 1. Description
+### 1. Description
 
-        ### 2. Mise en place
+### 2. Mise en place
 
 github
 
