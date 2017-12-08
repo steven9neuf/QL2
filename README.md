@@ -26,53 +26,52 @@ github
 
 [https://github.com/steven9neuf/QL2](https://github.com/steven9neuf/QL2)
 
-        ###3. Avantages et inconvénients
+### 3. Avantages et inconvénients
 
-    ##2. Mise en place de logs
+## 2. Mise en place de logs
 
-        ###1. Description
+### 1. Description
 
-        ###2. Mise en place
+### 2. Mise en place
 
-Log4j
+`Log4j`
 
-        ###3. Avantages et inconvénients
+### 3. Avantages et inconvénients
 
-    ##3. Qualité de code
+## 3. Qualité de code
 
-        ###1. Description
+### 1. Description
 
-        ###2. Mise en place
+### 2. Mise en place
 
-JDeodorant : bad smells
+- JDeodorant : bad smells
 
-Codacy
+- Codacy
 
-        ###3. Avantages et inconvénients
+### 3. Avantages et inconvénients
 
-    ##4. Mise en place du test automatique de build
+## 4. Mise en place du test automatique de build
 
-        ###1. Description
+### 1. Description
 
-        ###2. Mise en place
+### 2. Mise en place
 
 Travis  CI
 
 https://travis-ci.org/steven9neuf/QL2/jobs/313235346
 
-        ###3. Avantages et inconvénients
+### 3. Avantages et inconvénients
 
-    ##5. Utilisation de Design patterns
+## 5. Utilisation de Design patterns
 
-        ###1. Composite
+### 1. Composite
 
-        ###2. Decorator
+### 2. Decorator
 
-        ###3. Command
+### 3. Command
+### 4. State
 
-        ###4. State
-
-#5. Conclusion
+# 5. Conclusion
 
 
 
