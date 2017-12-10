@@ -13,9 +13,9 @@
         <pathelement location="lib/jinput.jar"/>
         <pathelement location="lib/lwjgl.jar"/>
         <pathelement location="lib/slick.jar"/>
+        <pathelement location="lib/apache-log4j-2.10.0-bin/log4j-1.2-api-2.10.0.jar"/>
         <pathelement location="lib/apache-log4j-2.10.0-bin/log4j-api-2.10.0.jar"/>
         <pathelement location="lib/apache-log4j-2.10.0-bin/log4j-core-2.10.0.jar"/>
-        <pathelement location="lib/apache-log4j-2.10.0-bin/log4j-1.2-api-2.10.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -53,8 +53,8 @@
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
-    <target name="WindowGame">
-        <java classname="main.WindowGame" failonerror="true" fork="yes">
+    <target name="New_configuration">
+        <java classname="game.WindowGame" failonerror="true" fork="yes">
             <jvmarg line="-Djava.library.path=lib/natives&#13;&#10;-Dlog4j.configurationFile=src/log4j.properties"/>
             <classpath refid="QL2.classpath"/>
         </java>
