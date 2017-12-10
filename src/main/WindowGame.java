@@ -1,4 +1,6 @@
 package main;
+
+
 /**
  * Main class
  */
@@ -243,6 +245,7 @@ public class WindowGame extends BasicGame {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private boolean extracted() {
 		return HUD_font.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
 	}
