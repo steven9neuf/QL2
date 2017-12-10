@@ -1,0 +1,1 @@
+java -Djava.library.path=./lib/natives -Dlog4j.configurationFile=src/log4j.properties -jar Storm.jar
