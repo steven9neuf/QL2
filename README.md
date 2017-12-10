@@ -8,7 +8,7 @@
 
 - Cloner le répertoire sur votre machine `git clone https://github.com/steven9neuf/QL2`
 - Placez-vous à la racine du projet `cd QL2`
-- Lancer l'exécutable `java -Djava.library.path=./lib/natives -Dlog4j.configurationFile=src/log4j.properties -jar Storm.jar`
+- Lancer l'exécutable en cliquant sur le script run.bat ou en exécutant la commande suivante `java -Djava.library.path=./lib/natives -Dlog4j.configurationFile=src/log4j.properties -jar Storm.jar`
 
 
 
