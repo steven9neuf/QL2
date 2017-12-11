@@ -213,7 +213,7 @@ public class WindowGame extends BasicGame {
 		text_font = new UnicodeFont(font, font.getSize(), font.isBold(), font.isItalic());
 		text_font.addAsciiGlyphs();
 		text_font.addGlyphs(400, 600);
-		text_font.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
+		extracted2();
 		text_font.loadGlyphs();
 		
 		// Image initialization
@@ -243,6 +243,11 @@ public class WindowGame extends BasicGame {
 				sc.close();
 			}
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private boolean extracted2() {
+		return text_font.getEffects().add(new ColorEffect(java.awt.Color.WHITE));
 	}
 
 	@SuppressWarnings("unchecked")
