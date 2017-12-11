@@ -1,11 +1,6 @@
 package game;
 
 
-/**
- * Main class
- */
-import modele.*;
-
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.io.File;
@@ -19,6 +14,9 @@ import java.util.Scanner;
 
 import org.newdawn.slick.*;
 import org.newdawn.slick.font.effects.ColorEffect;
+
+import modele.*;
+
 import org.newdawn.slick.BasicGame;
 import org.newdawn.slick.Color;
 import org.apache.logging.log4j.Logger;
