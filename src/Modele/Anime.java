@@ -1,10 +1,6 @@
 package modele;
 
-
-
 import org.newdawn.slick.*;
-
-
 
 /**
  * @author steven
